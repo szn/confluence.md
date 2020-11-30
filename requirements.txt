@@ -1,0 +1,4 @@
+atlassian-python-api
+termcolor
+coloredlogs
+markdown2
