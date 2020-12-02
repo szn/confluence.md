@@ -7,37 +7,59 @@ import markdown2
 
 from utils.log import logger, is_debug
 
-CF_URL = re.compile(r'(?P<host>https?://[^/]+)/.*/(?P<page_id>\d+)/')
+CF_URL = re.compile(r'(?P<host>https?://[^/]+)/.*/(?P<page_id>\d+)')
 
 class ConfluenceMD(atlassian.Confluence):
+    def __init__(self, username:str, token:str, md_file:str, url:str = None,
+            add_meta:bool=False, add_info_panel:bool=False, add_label:str=None) -> None:
+        self.username = username
+        self.token = token
+        self.md_file = md_file
+        self.url = url
+        self.add_meta = add_meta
+        self.add_info_panel = add_info_panel
+        self.add_label = add_label
 
-    def __init__(self, url, username, token):
-        super().__init__(url=url,
-                username=username,
-                password=token)
+        if url:
+            self.init()
 
+    def init(self):
+        super().__init__(url=self.url, username=self.username, password=self.token)
 
-    def update_existing(self, md_file: str, page_id: str = None) -> None:
+    def update_existing(self, page_id: str = None) -> None:
         logger.debug(f"Updating page `{page_id}` based on `md_file` file")
-        html = ConfluenceMD.md_file_to_html(md_file)
-        page_id_from_meta, host = ConfluenceMD.parse_confluence_url(html.metadata)
+        html, page_id_from_meta, url = self.md_file_to_html()
 
         if page_id == None:
+            logger.debug(f"Using `page_id` from `{self.md_file}` file")
             page_id = page_id_from_meta
 
         assert page_id, (f"Can't update page without page_id given either by "
-                f"`--page_id` parameter or via `confluence-url` tag in `{md_file}` file")
+                f"`--page_id` parameter or via `confluence-url` tag in `{self.md_file}` file")
+
+        if self.url == None:
+            logger.debug(f"Using URL ({url}) from `{self.md_file}` file")
+            self.url = url
+            assert self.url, (f"Can't update page without url given either by "
+                    f"`--url` parameter or via `confluence-url` tag in `{self.md_file}` file`")
+            self.init()
 
         title = self.get_page_title_by_id(page_id)
 
         logger.debug(f"Updating page_id `{page_id}` titled `{title}`")
-        self.update_page(page_id, title,
+        response = self.update_page(page_id, title,
                 html, parent_id=None, type='page', representation='storage',
                 minor_edit=True)
 
+        if self.add_meta:
+            confluence_url = ConfluenceMD.get_link_from_response(response)
+            self.add_meta_to_file(confluence_url)
+        
+        if self.add_label:
+            self.add_label_to_page(page_id)
 
-    def create_page(self, md_file: str, parent_id: str, title: str,
-            add_meta:bool=False) -> None:
+
+    def create_page(self, parent_id: str, title: str) -> None:
 
         logger.debug(f"Creating new page `title` based on `md_file` file")
         space = self.get_page_space(parent_id)
@@ -47,8 +69,7 @@ class ConfluenceMD(atlassian.Confluence):
             assert False, (f"Page titled `{title}` already exists in "
                     f"the `{space}` space. Can't create another one.")
 
-        html = ConfluenceMD.md_file_to_html(md_file)
-        page_id_from_meta, host = ConfluenceMD.parse_confluence_url(html.metadata)
+        html, page_id_from_meta, url = self.md_file_to_html()
         assert not page_id_from_meta, (f"Metadata pointing to an existing page "
                 f"id `{page_id_from_meta}` present in the given markdown file. "
                 f"Is this create or update?")
@@ -59,8 +80,10 @@ class ConfluenceMD(atlassian.Confluence):
         confluence_url = ConfluenceMD.get_link_from_response(response)
         logger.debug(f"New page created {confluence_url}")
 
-        if add_meta:
-            ConfluenceMD.add_meta_to_file(md_file, confluence_url)
+        self.add_meta_to_file(confluence_url)
+        
+        page_id = ConfluenceMD.get_page_id_from_response(response)
+        self.add_label_to_page(page_id)
 
 
     @staticmethod
@@ -69,13 +92,20 @@ class ConfluenceMD(atlassian.Confluence):
 
 
     @staticmethod
-    def add_meta_to_file(md_file: str, confluence_url: str) -> None:
-        md = ConfluenceMD.get_file_contents(md_file)
+    def get_page_id_from_response(response) -> str:
+        return response['id']
+
+
+    def add_meta_to_file(self, confluence_url: str) -> None:
+        if not self.add_meta:
+            return
+
+        md = ConfluenceMD.get_file_contents(self.md_file)
         md = ("---\n"
             f"confluence-url: {confluence_url}\n"
             "---\n") + md
 
-        with open(md_file, 'w') as f:
+        with open(self.md_file, 'w') as f:
             f.write(md)
 
 
@@ -90,12 +120,16 @@ class ConfluenceMD(atlassian.Confluence):
             return f.read()
 
 
-    @staticmethod
-    def md_file_to_html(md_file: str) -> str:
+    def md_file_to_html(self) -> str:
         logger.debug("Converting MD to HTML")
-        return markdown2.markdown_path(path=md_file,
+        html = markdown2.markdown_path(path=self.md_file,
                 extras=['metadata', 'strike', 'tables', 'wiki-tables',
                 'code-friendly', 'fenced-code-blocks', 'footnotes'])
+
+        page_id_from_meta, url = ConfluenceMD.parse_confluence_url(html.metadata)
+        if self.add_info_panel:
+            html = self.get_info_panel() + html
+        return html, page_id_from_meta, url
 
 
     @staticmethod
@@ -114,5 +148,13 @@ class ConfluenceMD(atlassian.Confluence):
             return (page_id, host)
         logger.debug(f"  no valid Confluence url found")
         return (None, None)
-    
 
+    def add_label_to_page(self, page_id:str) -> None:
+        if not self.add_label:
+            return
+        self.set_page_label(page_id, self.add_label)
+
+    def get_info_panel(self):
+        return (f'''<p><strong>Automatic content</strong> This page was generated automatically from <code>{self.md_file}</code> file.
+        Do not edit it on Confluence.</p><hr />
+        ''')

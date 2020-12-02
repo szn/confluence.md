@@ -20,45 +20,47 @@ def register_action(function):
     return wrapper
 
 def init_confluence(args):
-    return ConfluenceMD(args.url, args.user, args.token)
+    return ConfluenceMD(username=args.user, token=args.token, md_file=args.file.name,
+            url=args.url, add_meta=args.add_meta, add_info_panel=args.add_info,
+            add_label=args.add_label)
 
 @register_action
 def update(args) -> int:
-    """Updates page content based on given page_id or medata in Markdown file"""
+    """Updates page content based on given page_id or metadata in Markdown file"""
     confluence = init_confluence(args)
-    confluence.update_existing(args.file.name, args.page_id)
+    confluence.update_existing(args.page_id)
 
 @register_action
 def create(args):
-    """Creates new page under given parent id"""
+    """Creates new page under given parent_id"""
+    assert args.url, ("No --url parameter is provided, gave up")
+
     confluence = init_confluence(args)
-    confluence.create_page(args.file.name, args.parent_id, args.title,
-            args.add_meta)
+    confluence.create_page(args.parent_id, args.title)
 
 def main():
     actions = list(ACTIONS.keys())
 
     description = """Markdown to Confluence
 
-Example workfloe:
+Example workflow:
 
 1 Create a new page under --parent_id:
   $ ./md2cf.py --user user@name.net --token 9a8dsadsh --url https://your-domain.atlassian.net \\
-          create --file markdown.md --parent_id 18237182 --title "new title" --add_meta
+          create --file README.md --parent_id 182371 --title "new title" --add_meta
 
-2 The page is created and the file is decorated with medatada:
+2 The page is created and the file is decorated with ### 2. The page is created and the file is decorated with metadata:
   $ head -n 3 markdown.md
   ---
   confluence-url: https://your-domain.atlassian.net/wiki/spaces/SP/pages/18237182/new+title
   ---
 
-3 Performing an update does not require providing --page_id:
-  $ ./md2cf.py --user user@name.net --token 9a8dsadsh --url https://your-domain.atlassian.net \\
-          update --file markdown.md
+3 Performing an update does not require providing --page_id and --url:
+  $ ./md2cf.py --user user@name.net --token 9a8dsadsh update --file README.md
 
-4 Doing an update with --page_id is still possible:
-  $ ./md2cf.py --user user@name.net --token 9a8dsadsh --url https://your-domain.atlassian.net \\
-          update --file markdown.md --page_id 17006931
+  Doing an update with --page_id and --url is still possible.
+
+  Consider adding useful --add_info option.
 
 To create Atlassian API Token go to:
   https://id.atlassian.com/manage-profile/security/api-tokens
@@ -79,7 +81,7 @@ Actions:
             help="Atlassian username/email")
     auth_args.add_argument("-t", "--token", action="store", required=True,
             help="Atlassian API token")
-    auth_args.add_argument("-l", "--url", action="store", required=True,
+    auth_args.add_argument("-l", "--url", action="store", required=False,
             help="Atlassian instance URL")
 
     create_args = parser.add_argument_group('create page parameters')
@@ -87,8 +89,6 @@ Actions:
             help="define parent page id while creating a new page")
     create_args.add_argument("--title", action="store",
             help="define page title while creating a new page")
-    create_args.add_argument("--add_meta", action="store_true",
-            help="adds metadata to .md file for easy editing")
 
     update_args = parser.add_argument_group('update page arguments')
     update_args.add_argument("--page_id", action="store",
@@ -97,6 +97,13 @@ Actions:
     parser.add_argument("--file", action="store",
             type=argparse.FileType('r'), required=True,
             help="input markdown file to process")
+
+    parser.add_argument("--add_meta", action="store_true",
+            help="adds metadata to .md file for easy editing")
+    parser.add_argument("--add_info", action="store_true",
+            help="adds info panel **automatic content** do not edit on top of the page")
+    parser.add_argument("--add_label", action="store",
+            help="adds label to page")
 
     parser.add_argument("-v", "--verbose", action="store_true",
             help="verbose mode")
