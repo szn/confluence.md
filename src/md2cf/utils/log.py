@@ -3,7 +3,7 @@ import logging
 import coloredlogs
 from termcolor import colored
 
-logger = logging.getLogger("net.dirtyagile.md2cf")
+logger = logging.getLogger("net.dirtyagile.confluence.md")
 
 
 def init_logger(args):
@@ -28,7 +28,7 @@ def init_logger(args):
                     'notice': {'color': 'magenta'},
                     'warning': {'color': 'yellow'}})
 
-    logging.getLogger("net.dirtyagile.md2cf").level = logging.DEBUG if args.verbose else logging.INFO
+    logging.getLogger("net.dirtyagile.confluence.md").level = logging.DEBUG if args.verbose else logging.INFO
 
 
 def is_debug():

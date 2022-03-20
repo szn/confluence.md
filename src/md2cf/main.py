@@ -46,7 +46,7 @@ def main():
 Example workflow:
 
 1 Create a new page under --parent_id:
-  $ ./md2cf.py --user user@name.net --token 9a8dsadsh --url https://your-domain.atlassian.net \\
+  $ confluence.md --user user@name.net --token 9a8dsadsh --url https://your-domain.atlassian.net \\
           create --file README.md --parent_id 182371 --title "new title" --add_meta
 
 2 The page is created and the file is decorated with ### 2. The page is created and the file is decorated with metadata:
@@ -56,7 +56,7 @@ Example workflow:
   ---
 
 3 Performing an update does not require providing --page_id and --url:
-  $ ./md2cf.py --user user@name.net --token 9a8dsadsh update --file README.md
+  $ confluence.md --user user@name.net --token 9a8dsadsh update --file README.md
 
   Doing an update with --page_id and --url is still possible.
 
@@ -72,7 +72,7 @@ Actions:
         description += f"  {action:10}\t\t{ACTIONS[action]}\n"
 
     parser = argparse.ArgumentParser(add_help=True,
-            prog="./md2cf.py",
+            prog="confluence.md",
             formatter_class=RawTextHelpFormatter,
             description=description)
 
