@@ -10,6 +10,14 @@ Push markdown files straight to a Confluence page.
 `confluence.md` allows you to push any markdown file to Confluence. You can create
 a new page (under given parent) or update an existing one.
 
+## How to install?
+
+It's as easy as:
+
+```
+$ pip install confluence.md
+```
+
 ## How to use it?
 
 Markdown to Confluence
