@@ -6,8 +6,8 @@ from argparse import RawTextHelpFormatter
 
 from atlassian.errors import ApiError
 
-from utils.log import logger, init_logger, headline
-from utils.confluencemd import ConfluenceMD
+from .utils.log import logger, init_logger, headline
+from .utils.confluencemd import ConfluenceMD
 
 ACTIONS = {}
 
