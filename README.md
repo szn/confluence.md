@@ -1,6 +1,3 @@
----
-confluence-url: https://dirtyagile.atlassian.net/wiki/spaces/AD/pages/35061845
----
 # confluence.md
 
 Push markdown files straight to a Confluence page.
@@ -26,26 +23,26 @@ Example workflow:
 
 ### 1. Create a new page under `--parent_id`:
 ```
-  $ confluence.md --user user@name.net --token 9a8dsadsh --url https://your-domain.atlassian.net \
-          create --file README.md --parent_id 182371 --title "new title" --add_meta
+$ confluence.md --user user@name.net --token 9a8dsadsh --url https://your-domain.atlassian.net \
+        create --file README.md --parent_id 182371 --title "new title" --add_meta
 ```
 
 ### 2. The page is created and the file is decorated with metadata:
 ```
-  $ head -n 3 markdown.md
-  ---
-  confluence-url: https://your-domain.atlassian.net/wiki/spaces/SP/pages/18237182/new+title
-  ---
+$ head -n 3 markdown.md
+---
+confluence-url: https://your-domain.atlassian.net/wiki/spaces/SP/pages/18237182/new+title
+---
 ```
 
 ### 3. Performing an update does not require providing `--page_id` and `--url`:
 ```
-  $ confluence.md --user user@name.net --token 9a8dsadsh update --file README.md
+$ confluence.md --user user@name.net --token 9a8dsadsh update --file README.md
 ```
 
-  Doing an update with `--page_id` and `--url` is still possible.
+Doing an update with `--page_id` and `--url` is still possible.
 
-  Consider adding useful `--add_info` option.
+Consider adding useful `--add_info` option.
 
 To create Atlassian API Token go to [api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens).
 
