@@ -5,7 +5,7 @@ from typing import List
 import atlassian
 import markdown2
 
-from utils.log import logger, is_debug
+from .log import logger
 
 CF_URL = re.compile(r'(?P<host>https?://[^/]+)/.*/(?P<page_id>\d+)')
 

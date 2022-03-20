@@ -1,13 +1,13 @@
 ---
 confluence-url: https://dirtyagile.atlassian.net/wiki/spaces/AD/pages/35061845
 ---
-# md2cf
+# confluence.md
 
 Push markdown files straight to a Confluence page.
 
 ## What it does?
 
-`md2cf` allows you to push any markdown file to Confluence. You can create
+`confluence.md` allows you to push any markdown file to Confluence. You can create
 a new page (under given parent) or update an existing one.
 
 ## How to use it?
@@ -18,7 +18,7 @@ Example workflow:
 
 ### 1. Create a new page under `--parent_id`:
 ```
-  $ ./md2cf.py --user user@name.net --token 9a8dsadsh --url https://your-domain.atlassian.net \
+  $ confluence.md --user user@name.net --token 9a8dsadsh --url https://your-domain.atlassian.net \
           create --file README.md --parent_id 182371 --title "new title" --add_meta
 ```
 
@@ -32,7 +32,7 @@ Example workflow:
 
 ### 3. Performing an update does not require providing `--page_id` and `--url`:
 ```
-  $ ./md2cf.py --user user@name.net --token 9a8dsadsh update --file README.md
+  $ confluence.md --user user@name.net --token 9a8dsadsh update --file README.md
 ```
 
   Doing an update with `--page_id` and `--url` is still possible.
@@ -48,27 +48,26 @@ To create Atlassian API Token go to [api-tokens](https://id.atlassian.com/manage
 
 **positional arguments:**
 
-- `{update,create}`       Action to run
+- `{update,create}`         Action to run
 
 **optional arguments:**
 
 - `-h`, `--help`            show this help message and exit
-- `--file FILE`           input markdown file to process
-- `--add_meta`            adds metadata to .md file for easy editing
-- `--add_info`            adds info panel **automatic content** do not edit on top of the page
+- `--file FILE`             input markdown file to process
+- `--add_meta`              adds metadata to .md file for easy editing
+- `--add_info`              adds info panel **automatic content** do not edit on top of the page
 - `--add_label` `ADD_LABEL` adds label to page
 - `-v`, `--verbose`         verbose mode
 
 **required auth parameters:**
 
-- `-u` `USER`, `--user` `USER`  Atlassian username/email
+- `-u` `USER`, `--user` `USER`    Atlassian username/email
 - `-t` `TOKEN`, `--token` `TOKEN` Atlassian API token
-- `-l` `URL`, `--url` `URL`     Atlassian instance URL
+- `-l` `URL`, `--url` `URL`       Atlassian instance URL
 
 **create page parameters:**
 
-- `--parent_id` `PARENT_ID`
-                        define parent page id while creating a new page
+- `--parent_id` `PARENT_ID` define parent page id while creating a new page
 - `--title` `TITLE`         define page title while creating a new page
 
 **update page arguments:**
