@@ -8,7 +8,7 @@ logger = logging.getLogger("net.dirtyagile.confluence.md")
 
 def init_logger(args):
     coloredlogs.install(
-            level='DEBUG' if args.verbose else 'INFO',
+            level='WARN' if args.quiet else ('DEBUG' if args.verbose else 'INFO'),
             logger=logger,
             fmt='%(asctime)s %(programname)s %(message)s',
             programname='>',
@@ -28,7 +28,7 @@ def init_logger(args):
                     'notice': {'color': 'magenta'},
                     'warning': {'color': 'yellow'}})
 
-    logging.getLogger("net.dirtyagile.confluence.md").level = logging.DEBUG if args.verbose else logging.INFO
+    logging.getLogger("net.dirtyagile.confluence.md").level = logging.WARN if args.quiet else (logging.DEBUG if args.verbose else logging.INFO)
 
 
 def is_debug():

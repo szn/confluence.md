@@ -107,6 +107,8 @@ Actions:
 
     parser.add_argument("-v", "--verbose", action="store_true",
             help="verbose mode")
+    parser.add_argument("-q", "--quiet", action="store_true",
+            help="quiet mode")
     parser.add_argument("action", help="Action to run", choices=ACTIONS)
 
     if len(sys.argv)==1:

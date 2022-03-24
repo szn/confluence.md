@@ -63,6 +63,7 @@ To create Atlassian API Token go to [api-tokens](https://id.atlassian.com/manage
 - `--add_info`              adds info panel **automatic content** do not edit on top of the page
 - `--add_label` `ADD_LABEL` adds label to page
 - `-v`, `--verbose`         verbose mode
+- `-q`, `--quiet`           quiet mode
 
 **required auth parameters:**
 
