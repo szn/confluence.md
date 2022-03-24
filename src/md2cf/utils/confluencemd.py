@@ -59,26 +59,36 @@ class ConfluenceMD(atlassian.Confluence):
             self.add_label_to_page(page_id)
 
 
-    def create_page(self, parent_id: str, title: str) -> None:
-
-        logger.debug(f"Creating new page `title` based on `md_file` file")
+    def create_page(self, parent_id: str, title: str, overwrite: bool) -> None:
+        assert title, "Provide a title for a newly created page"
+        assert parent_id, "Provide parent_id for a newly created page"
         space = self.get_page_space(parent_id)
 
+        page_id = None
         if self.page_exists(space, title):
             page_id = self.get_page_id(space, title)
-            assert False, (f"Page titled `{title}` already exists in "
-                    f"the `{space}` space. Can't create another one.")
+            assert overwrite, (f"Page titled `{title}` already exists in "
+                    f"the `{space}` space. Use --overwrite to force it.")
 
         html, page_id_from_meta, url = self.md_file_to_html()
-        assert not page_id_from_meta, (f"Metadata pointing to an existing page "
+        assert not page_id_from_meta and overwrite, (f"Metadata pointing to an existing page "
                 f"id `{page_id_from_meta}` present in the given markdown file. "
-                f"Is this create or update?")
+                f"Use --overwrite to force it.")
         
-        response = atlassian.Confluence.create_page(self, space, title, body=html,
-                parent_id=parent_id, type='page', representation='storage')
+        overwrite = page_id or page_id_from_meta
+
+        if overwrite:
+            logger.debug(f"Overwriting existing page `{title}` based on `{self.md_file}` file")
+            response = self.update_page(page_id or page_id_from_meta, title,
+                    html, parent_id=None, type='page', representation='storage',
+                    minor_edit=True)
+        else:
+            logger.debug(f"Creating new page `{title}` based on `{self.md_file}` file")
+            response = atlassian.Confluence.create_page(self, space, title, body=html,
+                    parent_id=parent_id, type='page', representation='storage', editor="v2")
 
         confluence_url = ConfluenceMD.get_link_from_response(response)
-        logger.debug(f"New page created {confluence_url}")
+        logger.debug(f"{'Page overwritten' if overwrite else 'New page created'} {confluence_url}")
 
         self.add_meta_to_file(confluence_url)
         

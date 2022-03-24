@@ -75,6 +75,7 @@ To create Atlassian API Token go to [api-tokens](https://id.atlassian.com/manage
 
 - `--parent_id` `PARENT_ID` define parent page id while creating a new page
 - `--title` `TITLE`         define page title while creating a new page
+- `--overwrite`             force overwrite if page with this title already exists
 
 **update page arguments:**
 

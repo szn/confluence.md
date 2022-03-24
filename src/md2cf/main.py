@@ -36,7 +36,7 @@ def create(args):
     assert args.url, ("No --url parameter is provided, gave up")
 
     confluence = init_confluence(args)
-    confluence.create_page(args.parent_id, args.title)
+    confluence.create_page(args.parent_id, args.title, args.overwrite)
 
 def main():
     actions = list(ACTIONS.keys())
@@ -89,6 +89,8 @@ Actions:
             help="define parent page id while creating a new page")
     create_args.add_argument("--title", action="store",
             help="define page title while creating a new page")
+    create_args.add_argument("--overwrite", action="store_true",
+            help="force overwrite if page with this title already exists")
 
     update_args = parser.add_argument_group('update page arguments')
     update_args.add_argument("--page_id", action="store",
