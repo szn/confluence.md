@@ -71,7 +71,7 @@ class ConfluenceMD(atlassian.Confluence):
                     f"the `{space}` space. Use --overwrite to force it.")
 
         html, page_id_from_meta, url = self.md_file_to_html()
-        assert not page_id_from_meta and overwrite, (f"Metadata pointing to an existing page "
+        assert not page_id_from_meta or overwrite, (f"Metadata pointing to an existing page "
                 f"id `{page_id_from_meta}` present in the given markdown file. "
                 f"Use --overwrite to force it.")
         
