@@ -1,7 +1,7 @@
 import re
 import os
 
-from typing import List, Tuple
+from typing import List, Tuple, Union, Any
 
 import atlassian
 import markdown2
@@ -41,23 +41,23 @@ class ConfluenceMD(atlassian.Confluence):
         self, page_id: str, html: str, images: List[Tuple[str, str]]
     ) -> str:
         for (alt, path) in images:
-            logger.debug(f"register image file `{path}`")
+            logger.debug("register image file `%s`", path)
             self.attach_file(filename=path, page_id=page_id)
             old = f'<img src="{path}" alt="{alt}" />'
             new = f'<ac:image> <ri:attachment ri:filename="{os.path.basename(path)}" /> </ac:image>'
             if html.find(old) != -1:
-                logger.debug(f"replace image tag `{old}` with `{new}`")
+                logger.debug("replace image tag `%s` with `%s`", old, new)
                 html = html.replace(old, new)
             else:
-                logger.warn(f"image tag `{old}` not found in html")
+                logger.warning("image tag `%s` not found in html", old)
         return html
 
     def update_existing(self, page_id: str = None) -> None:
-        logger.debug(f"Updating page `{page_id}` based on `md_file` file")
+        logger.debug("Updating page `%s` based on `md_file` file", page_id)
         html, images, page_id_from_meta, url = self.md_file_to_html()
 
-        if page_id == None:
-            logger.debug(f"Using `page_id` from `{self.md_file}` file")
+        if page_id is None:
+            logger.debug("Using `page_id` from `%s` file", self.md_file)
             page_id = page_id_from_meta
 
         assert page_id, (
@@ -65,8 +65,8 @@ class ConfluenceMD(atlassian.Confluence):
             f"`--page_id` parameter or via `confluence-url` tag in `{self.md_file}` file"
         )
 
-        if self.url == None:
-            logger.debug(f"Using URL ({url}) from `{self.md_file}` file")
+        if self.url is None:
+            logger.debug("Using URL (%s) from `%s` file", url, self.md_file)
             self.url = url
             assert self.url, (
                 f"Can't update page without url given either by "
@@ -77,7 +77,7 @@ class ConfluenceMD(atlassian.Confluence):
         title = self.get_page_title_by_id(page_id)
         html = self.rewrite_images(page_id, html, images)
 
-        logger.debug(f"Updating page_id `{page_id}` titled `{title}`")
+        logger.debug("Updating page_id `%s` titled `%s`", page_id, title)
         response = self.update_page(
             page_id,
             title,
@@ -108,7 +108,7 @@ class ConfluenceMD(atlassian.Confluence):
                 f"the `{space}` space. Use --overwrite to force it."
             )
 
-        html, images, page_id_from_meta, url = self.md_file_to_html()
+        html, images, page_id_from_meta, _url = self.md_file_to_html()
         assert not page_id_from_meta or overwrite, (
             f"Metadata pointing to an existing page "
             f"id `{page_id_from_meta}` present in the given markdown file. "
@@ -119,7 +119,7 @@ class ConfluenceMD(atlassian.Confluence):
 
         if overwrite:
             logger.debug(
-                f"Overwriting existing page `{title}` based on `{self.md_file}` file"
+                "Overwriting existing page `%s` based on `%s` file", title, self.md_file
             )
             html = self.rewrite_images(page_id or page_id_from_meta, html, images)
             response = self.update_page(
@@ -132,7 +132,7 @@ class ConfluenceMD(atlassian.Confluence):
                 minor_edit=True,
             )
         else:
-            logger.debug(f"Creating new page `{title}` based on `{self.md_file}` file")
+            logger.debug("Creating new page `%s` based on `%s` file", title, self.md_file)
             response = atlassian.Confluence.create_page(
                 self,
                 space,
@@ -144,7 +144,7 @@ class ConfluenceMD(atlassian.Confluence):
                 editor="v2",
             )
             if len(images) > 0:
-                logger.debug(f"Uploading images to newly created page")
+                logger.debug("Uploading images to newly created page")
                 page_id = ConfluenceMD.get_page_id_from_response(response)
                 html = self.rewrite_images(page_id, html, images)
                 response = self.update_page(
@@ -159,7 +159,7 @@ class ConfluenceMD(atlassian.Confluence):
 
         confluence_url = ConfluenceMD.get_link_from_response(response)
         logger.debug(
-            f"{'Page overwritten' if overwrite else 'New page created'} {confluence_url}"
+            "%s %s", 'Page overwritten' if overwrite else 'New page created', confluence_url
         )
 
         self.add_meta_to_file(confluence_url)
@@ -182,25 +182,25 @@ class ConfluenceMD(atlassian.Confluence):
         md = ConfluenceMD.get_file_contents(self.md_file)
         md = ("---\n" f"confluence-url: {confluence_url}\n" "---\n") + md
 
-        with open(self.md_file, "w") as f:
-            f.write(md)
+        with open(self.md_file, "w", encoding="utf-8") as stream:
+            stream.write(md)
 
     def get_page_title_by_id(self, page_id: str) -> str:
-        logger.debug(f"Getting page title from page id `{page_id}`")
+        logger.debug("Getting page title from page id `%s`", page_id)
         return self.get_page_by_id(page_id)["title"]
 
     @staticmethod
     def get_file_contents(file: str) -> str:
-        with open(file, "r") as f:
-            return f.read()
+        with open(file, "r", encoding="utf-8") as stream:
+            return stream.read()
 
-    def md_file_to_html(self) -> Tuple[str, List[Tuple[str, str]], str, str]:
+    def md_file_to_html(self) -> Tuple[Any, List[Tuple[str, str]], Union[str, Any], Union[str, Any]]:
         logger.debug("Converting MD to HTML")
         content = self.get_file_contents(self.md_file)
         images = []
         for image in IMAGE_PATTERN.finditer(content):
             images.append((image.group("alt"), image.group("path")))
-            pass
+
         html = markdown2.markdown_path(
             path=self.md_file,
             extras=[
@@ -220,20 +220,20 @@ class ConfluenceMD(atlassian.Confluence):
         return html, images, page_id_from_meta, url
 
     @staticmethod
-    def parse_confluence_url(meta: str) -> List[str]:
+    def parse_confluence_url(meta: str) -> Tuple[Union[str, None], Union[str, None]]:
         if "confluence-url" not in meta:
             return (None, None)
 
         url = meta["confluence-url"]
 
-        logger.debug(f"Looking for host and page_id in {url} url")
+        logger.debug("Looking for host and page_id in %s url", url)
         cf_url = CF_URL.search(url)
         if cf_url:
             page_id = cf_url.group("page_id")
             host = cf_url.group("host")
-            logger.debug(f"  found page_id `{page_id}` and host `{host}`")
+            logger.debug("  found page_id `%s` and host `%s`", page_id, host)
             return (page_id, host)
-        logger.debug(f"  no valid Confluence url found")
+        logger.debug("  no valid Confluence url found")
         return (None, None)
 
     def add_label_to_page(self, page_id: str) -> None:
