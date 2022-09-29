@@ -9,7 +9,7 @@ import markdown2
 from .log import logger
 
 CF_URL = re.compile(r"(?P<host>https?://[^/]+)/.*/(?P<page_id>\d+)")
-IMAGE_PATTERN = re.compile(r"\!\[(?P<alt>.*)\]\((?P<path>.*)\)")
+IMAGE_PATTERN = re.compile(r"\!\[(?P<alt>.*)\]\((?P<path>[^:)]+)\)")
 
 
 class ConfluenceMD(atlassian.Confluence):
