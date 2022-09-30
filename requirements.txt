@@ -1,4 +1,4 @@
-atlassian-python-api==3.18.*
-coloredlogs==15.0.*
-markdown2==2.4.*
-termcolor==1.1.*
+atlassian-python-api>=3.18.*
+coloredlogs>=15.0.*
+markdown2>=2.4.*
+termcolor>=1.1.*
