@@ -26,7 +26,7 @@ def init_confluence(args):
             add_label=args.add_label)
 
 @register_action
-def update(args) -> int:
+def update(args):
     """Updates page content based on given page_id or metadata in Markdown file"""
     confluence = init_confluence(args)
     confluence.update_existing(args.page_id)
@@ -66,6 +66,8 @@ Example workflow:
 To create Atlassian API Token go to:
   https://id.atlassian.com/manage-profile/security/api-tokens
 
+While using Atlassian on-premise instance, you need to provide --password instead of --token parameter.
+
 Actions:
 """
     
@@ -82,9 +84,9 @@ Actions:
             help="Atlassian username/email")
 
     secret_args = auth_args.add_mutually_exclusive_group(required=True)
-    secret_args.add_argument("-t", "--token", action="store", required=True,
+    secret_args.add_argument("-t", "--token", action="store", required=False,
             help="Atlassian API token")
-    secret_args.add_argument("-p", "--password", action="store", required=True,
+    secret_args.add_argument("-p", "--password", action="store", required=False,
             help="Atlassian password")
     auth_args.add_argument("-l", "--url", action="store", required=False,
             help="Atlassian instance URL")
