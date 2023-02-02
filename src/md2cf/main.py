@@ -20,8 +20,9 @@ def register_action(function):
     return wrapper
 
 def init_confluence(args):
-    return ConfluenceMD(username=args.user, token=args.token, md_file=args.file.name,
-            url=args.url, add_meta=args.add_meta, add_info_panel=args.add_info,
+    return ConfluenceMD(username=args.user, token=args.token,
+            password=args.password, md_file=args.file.name, url=args.url,
+            add_meta=args.add_meta, add_info_panel=args.add_info,
             add_label=args.add_label)
 
 @register_action
@@ -79,8 +80,12 @@ Actions:
     auth_args = parser.add_argument_group('required auth parameters')
     auth_args.add_argument("-u", "--user", action="store", required=True,
             help="Atlassian username/email")
-    auth_args.add_argument("-t", "--token", action="store", required=True,
+
+    secret_args = auth_args.add_mutually_exclusive_group(required=True)
+    secret_args.add_argument("-t", "--token", action="store", required=True,
             help="Atlassian API token")
+    secret_args.add_argument("-p", "--password", action="store", required=True,
+            help="Atlassian password")
     auth_args.add_argument("-l", "--url", action="store", required=False,
             help="Atlassian instance URL")
 
