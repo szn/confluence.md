@@ -39,12 +39,9 @@ class ConfluenceMD(atlassian.Confluence):
     def init(self):
         kwargs = {
             'url': self.url,
-            'username': self.username
+            'username': self.username,
+            'password': self.password or self.token
         }
-        if self.password:
-            kwargs['password'] = self.password
-        if self.token:
-            kwargs['token'] = self.token
         super().__init__(**kwargs)
 
     def rewrite_images(
