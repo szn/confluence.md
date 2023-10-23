@@ -6,3 +6,4 @@ Thumbs.db
 /venv
 __pycache__
 *.egg-info
+docs

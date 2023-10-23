@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
-import os
 import sys
 import argparse
 from argparse import RawTextHelpFormatter
-
-from atlassian.errors import ApiError
 
 from .utils.log import logger, init_logger, headline
 from .utils.confluencemd import ConfluenceMD
@@ -40,23 +37,25 @@ def create(args):
     confluence.create_page(args.parent_id, args.title, args.overwrite)
 
 def main():
-    actions = list(ACTIONS.keys())
-
-    description = """Markdown to Confluence
+    """Markdown to Confluence
 
 Example workflow:
 
-1 Create a new page under --parent_id:
-  $ confluence.md --user user@name.net --token 9a8dsadsh --url https://your-domain.atlassian.net \\
-          create --file README.md --parent_id 182371 --title "new title" --add_meta
+1/ Create a new page under --parent_id:
 
-2 The page is created and the file is decorated with ### 2. The page is created and the file is decorated with metadata:
+  $ confluence.md --user user@name.net --token 9a8dsadsh --url https://your-domain.atlassian.net \\
+        create --file README.md --parent_id 182371 --title "new title" --add_meta
+
+2/ The page is created and the file is decorated with ### 2. The page is created and the file is
+  decorated with metadata:
+
   $ head -n 3 markdown.md
   ---
   confluence-url: https://your-domain.atlassian.net/wiki/spaces/SP/pages/18237182/new+title
   ---
 
-3 Performing an update does not require providing --page_id and --url:
+3/ Performing an update does not require providing --page_id and --url:
+
   $ confluence.md --user user@name.net --token 9a8dsadsh update --file README.md
 
   Doing an update with --page_id and --url is still possible.
@@ -66,11 +65,15 @@ Example workflow:
 To create Atlassian API Token go to:
   https://id.atlassian.com/manage-profile/security/api-tokens
 
-While using Atlassian on-premise instance, you need to provide --password instead of --token parameter.
+While using Atlassian on-premise instance, you need to provide --password instead of
+--token parameter.
 
 Actions:
 """
-    
+
+    actions = list(ACTIONS.keys())
+
+    description = main.__doc__
     for action in actions:
         description += f"  {action:10}\t\t{ACTIONS[action]}\n"
 
@@ -129,11 +132,10 @@ Actions:
 
     try:
         globals()[args.action](args)
-    except (RuntimeError, AssertionError, Exception) as e:
-        logger.error(e)
+    except (RuntimeError, AssertionError, Exception) as error:
+        logger.error(error)
         quit(-1)
 
 
 if __name__ == "__main__":
     main()
-

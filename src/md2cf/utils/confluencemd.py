@@ -1,7 +1,7 @@
 import re
 import os
 
-from typing import List, Tuple, Union, Any
+from typing import Any, List, Tuple, Optional, Dict
 
 import atlassian
 import markdown2
@@ -47,6 +47,8 @@ class ConfluenceMD(atlassian.Confluence):
     def rewrite_images(
         self, page_id: str, html: str, images: List[Tuple[str, str]]
     ) -> str:
+        """Replaces <img> html tags with Confluence specific <ac:image> and uploads
+           images as attachements"""
         for (alt, path) in images:
             logger.debug("register image file `%s`", path)
             self.attach_file(filename=path, page_id=page_id)
@@ -60,6 +62,7 @@ class ConfluenceMD(atlassian.Confluence):
         return html
 
     def update_existing(self, page_id: str = None) -> None:
+        """Updates an existing page by given page_id"""
         logger.debug("Updating page `%s` based on `md_file` file", page_id)
         html, images, page_id_from_meta, url = self.md_file_to_html()
 
@@ -103,6 +106,7 @@ class ConfluenceMD(atlassian.Confluence):
             self.add_label_to_page(page_id)
 
     def create_page(self, parent_id: str, title: str, overwrite: bool) -> None:
+        """Creates a new page under give parent_id"""
         assert title, "Provide a title for a newly created page"
         assert parent_id, "Provide parent_id for a newly created page"
         space = self.get_page_space(parent_id)
@@ -122,15 +126,15 @@ class ConfluenceMD(atlassian.Confluence):
             f"Use --overwrite to force it."
         )
 
-        overwrite = page_id or page_id_from_meta
+        overwrite_id = page_id if page_id else page_id_from_meta
 
-        if overwrite:
+        if overwrite_id:
             logger.debug(
                 "Overwriting existing page `%s` based on `%s` file", title, self.md_file
             )
             html = self.rewrite_images(page_id or page_id_from_meta, html, images)
             response = self.update_page(
-                page_id or page_id_from_meta,
+                overwrite_id,
                 title,
                 html,
                 parent_id=None,
@@ -176,32 +180,39 @@ class ConfluenceMD(atlassian.Confluence):
 
     @staticmethod
     def get_link_from_response(response) -> str:
+        """Returns URL to page from Confluence API response"""
         return response["_links"]["base"] + response["_links"]["webui"]
 
     @staticmethod
     def get_page_id_from_response(response) -> str:
+        """Returns page_id from Confluence API response"""
         return response["id"]
 
     def add_meta_to_file(self, confluence_url: str) -> None:
+        """Decorates markdown file with metadata in comments"""
         if not self.add_meta:
             return
 
-        md = ConfluenceMD.get_file_contents(self.md_file)
-        md = ("---\n" f"confluence-url: {confluence_url}\n" "---\n") + md
+        markdown = ConfluenceMD.get_file_contents(self.md_file)
+        markdown = ("---\n" f"confluence-url: {confluence_url}\n" "---\n") + markdown
 
         with open(self.md_file, "w", encoding="utf-8") as stream:
-            stream.write(md)
+            stream.write(markdown)
 
     def get_page_title_by_id(self, page_id: str) -> str:
+        """Returns page title by given page_id"""
         logger.debug("Getting page title from page id `%s`", page_id)
         return self.get_page_by_id(page_id)["title"]
 
     @staticmethod
     def get_file_contents(file: str) -> str:
+        """Return file contents"""
         with open(file, "r", encoding="utf-8") as stream:
             return stream.read()
 
-    def md_file_to_html(self) -> Tuple[Any, List[Tuple[str, str]], Union[str, Any], Union[str, Any]]:
+    def md_file_to_html(self, page_id: Optional[str]) -> Tuple[Any, Optional[str], Optional[str], bool]:
+        """Converts given md_file to html + uploads images + extracts metadata from it"""
+
         logger.debug("Converting MD to HTML")
         content = self.get_file_contents(self.md_file)
         images = []
@@ -227,7 +238,7 @@ class ConfluenceMD(atlassian.Confluence):
         return html, images, page_id_from_meta, url
 
     @staticmethod
-    def parse_confluence_url(meta: str) -> Tuple[Union[str, None], Union[str, None]]:
+        """Parses Confluence page URL and returns page_id and host"""
         if "confluence-url" not in meta:
             return (None, None)
 
@@ -244,11 +255,13 @@ class ConfluenceMD(atlassian.Confluence):
         return (None, None)
 
     def add_label_to_page(self, page_id: str) -> None:
+        """Selfdescriptive"""
         if not self.add_label:
             return
         self.set_page_label(page_id, self.add_label)
 
-    def get_info_panel(self):
+    def get_info_panel(self) -> str:
+        """Returns str with html info page to be placed on a Confluence page if --add_info is added"""
         return f"""<p><strong>Automatic content</strong> This page was generated automatically from <code>{self.md_file}</code> file.
         Do not edit it on Confluence.</p><hr />
         """
