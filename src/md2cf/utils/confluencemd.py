@@ -32,6 +32,7 @@ class ConfluenceMD(atlassian.Confluence):
         self.add_meta = add_meta
         self.add_info_panel = add_info_panel
         self.add_label = add_label
+        self.md_file_dir = os.path.dirname(md_file)
 
         if url:
             self.init()
@@ -50,10 +51,17 @@ class ConfluenceMD(atlassian.Confluence):
         """Replaces <img> html tags with Confluence specific <ac:image> and uploads
            images as attachements"""
         for (alt, path) in images:
-            logger.debug("register image file `%s`", path)
-            self.attach_file(filename=path, page_id=page_id)
+            rel_path = os.path.join(self.md_file_dir, path)
+            if not os.path.isfile(rel_path):
+                assert os.path.isfile(path)
+                logger.warning("file `%s` does not exist, using file relative to current dir `%s`", rel_path, path)
+                rel_path = path
+
+            logger.debug("register image file `%s`", rel_path)
+
+            self.attach_file(filename=rel_path, page_id=page_id)
             old = f'<img src="{path}" alt="{alt}" />'
-            new = f'<ac:image> <ri:attachment ri:filename="{os.path.basename(path)}" /> </ac:image>'
+            new = f'<ac:image> <ri:attachment ri:filename="{os.path.basename(rel_path)}" /> </ac:image>'
             if html.find(old) != -1:
                 logger.debug("replace image tag `%s` with `%s`", old, new)
                 html = html.replace(old, new)
@@ -64,7 +72,7 @@ class ConfluenceMD(atlassian.Confluence):
     def update_existing(self, page_id: str = None) -> None:
         """Updates an existing page by given page_id"""
         logger.debug("Updating page `%s` based on `md_file` file", page_id)
-        html, images, page_id_from_meta, url = self.md_file_to_html()
+        html, page_id_from_meta, url, _has_images = self.md_file_to_html(page_id)
 
         if page_id is None:
             logger.debug("Using `page_id` from `%s` file", self.md_file)
@@ -85,7 +93,6 @@ class ConfluenceMD(atlassian.Confluence):
             self.init()
 
         title = self.get_page_title_by_id(page_id)
-        html = self.rewrite_images(page_id, html, images)
 
         logger.debug("Updating page_id `%s` titled `%s`", page_id, title)
         response = self.update_page(
@@ -119,7 +126,7 @@ class ConfluenceMD(atlassian.Confluence):
                 f"the `{space}` space. Use --overwrite to force it."
             )
 
-        html, images, page_id_from_meta, _url = self.md_file_to_html()
+        html, page_id_from_meta, _url, has_images = self.md_file_to_html(page_id)
         assert not page_id_from_meta or overwrite, (
             f"Metadata pointing to an existing page "
             f"id `{page_id_from_meta}` present in the given markdown file. "
@@ -132,7 +139,6 @@ class ConfluenceMD(atlassian.Confluence):
             logger.debug(
                 "Overwriting existing page `%s` based on `%s` file", title, self.md_file
             )
-            html = self.rewrite_images(page_id or page_id_from_meta, html, images)
             response = self.update_page(
                 overwrite_id,
                 title,
@@ -154,10 +160,9 @@ class ConfluenceMD(atlassian.Confluence):
                 representation="storage",
                 editor="v2",
             )
-            if len(images) > 0:
+            if has_images:
                 logger.debug("Uploading images to newly created page")
                 page_id = ConfluenceMD.get_page_id_from_response(response)
-                html = self.rewrite_images(page_id, html, images)
                 response = self.update_page(
                     page_id,
                     title,
@@ -231,13 +236,15 @@ class ConfluenceMD(atlassian.Confluence):
                 "footnotes",
             ],
         )
-
         page_id_from_meta, url = ConfluenceMD.parse_confluence_url(html.metadata)
         if self.add_info_panel:
             html = self.get_info_panel() + html
-        return html, images, page_id_from_meta, url
+
+        html = self.rewrite_images(page_id if page_id else page_id_from_meta, html, images)
+        return html, page_id_from_meta, url, len(images) > 0
 
     @staticmethod
+    def parse_confluence_url(meta: Dict[str, str]) -> Tuple[Optional[str], Optional[str]]:
         """Parses Confluence page URL and returns page_id and host"""
         if "confluence-url" not in meta:
             return (None, None)
