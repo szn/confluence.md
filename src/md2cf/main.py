@@ -88,9 +88,9 @@ Actions:
 
     secret_args = auth_args.add_mutually_exclusive_group(required=True)
     secret_args.add_argument("-t", "--token", action="store", required=False,
-            help="Atlassian API token")
+            help="Atlassian API token (used in cloud instances)")
     secret_args.add_argument("-p", "--password", action="store", required=False,
-            help="Atlassian password")
+            help="Atlassian password (used in on-prem instances)")
     auth_args.add_argument("-l", "--url", action="store", required=False,
             help="Atlassian instance URL")
     auth_args.add_argument("-n", "--no_verify_ssl", action="store_true", required=False,
