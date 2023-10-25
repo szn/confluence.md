@@ -19,8 +19,8 @@ def register_action(function):
 def init_confluence(args):
     return ConfluenceMD(username=args.user, token=args.token,
             password=args.password, md_file=args.file.name, url=args.url,
-            add_meta=args.add_meta, add_info_panel=args.add_info,
-            add_label=args.add_label)
+            verify_ssl=(not args.no_verify_ssl), add_meta=args.add_meta,
+            add_info_panel=args.add_info, add_label=args.add_label)
 
 @register_action
 def update(args):
@@ -93,6 +93,8 @@ Actions:
             help="Atlassian password")
     auth_args.add_argument("-l", "--url", action="store", required=False,
             help="Atlassian instance URL")
+    auth_args.add_argument("-n", "--no_verify_ssl", action="store_true", required=False,
+            default=False, help="Don't verify SSL cert in on-prem instances")
 
     create_args = parser.add_argument_group('create page parameters')
     create_args.add_argument("--parent_id", action="store",

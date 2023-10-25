@@ -20,30 +20,25 @@ class ConfluenceMD(atlassian.Confluence):
         token: str = '',
         password: str = '',
         url: str = None,
+        verify_ssl: bool = True,
         add_meta: bool = False,
         add_info_panel: bool = False,
         add_label: str = None,
     ) -> None:
-        self.username = username
-        self.token = token
-        self.password = password
+        
+        super().__init__(
+            url=url,
+            username=username,
+            password=(password or token),
+            verify_ssl=verify_ssl,
+            cloud=bool(token),
+            token=token,
+        )
         self.md_file = md_file
-        self.url = url
         self.add_meta = add_meta
         self.add_info_panel = add_info_panel
         self.add_label = add_label
         self.md_file_dir = os.path.dirname(md_file)
-
-        if url:
-            self.init()
-
-    def init(self):
-        kwargs = {
-            'url': self.url,
-            'username': self.username,
-            'password': self.password or self.token
-        }
-        super().__init__(**kwargs)
 
     def rewrite_images(
         self, page_id: str, html: str, images: List[Tuple[str, str]]
