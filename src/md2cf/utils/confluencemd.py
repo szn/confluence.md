@@ -52,9 +52,6 @@ class ConfluenceMD(atlassian.Confluence):
                 logger.warning("file `%s` does not exist, using file relative to current dir `%s`", rel_path, path)
                 rel_path = path
 
-            logger.debug("register image file `%s`", rel_path)
-
-            self.attach_file(filename=rel_path, page_id=page_id)
             old = f'<img src="{path}" alt="{alt}" />'
             new = f'<ac:image> <ri:attachment ri:filename="{os.path.basename(rel_path)}" /> </ac:image>'
             if html.find(old) != -1:
@@ -64,10 +61,27 @@ class ConfluenceMD(atlassian.Confluence):
                 logger.warning("image tag `%s` not found in html", old)
         return html
 
+    def attach_images(
+            self, page_id: str, images: List[Tuple[str, str]]
+    ) -> None:
+        """Replaces <img> html tags with Confluence specific <ac:image> and uploads
+           images as attachements"""
+        for (alt, path) in images:
+            rel_path = os.path.join(self.md_file_dir, path)
+            if not os.path.isfile(rel_path):
+                assert os.path.isfile(path)
+                logger.warning("file `%s` does not exist, using file relative to current dir `%s`", rel_path, path)
+                rel_path = path
+
+            logger.debug("register image file `%s`", rel_path)
+            self.attach_file(filename=rel_path, page_id=page_id)
+
     def update_existing(self, page_id: str = None) -> None:
         """Updates an existing page by given page_id"""
         logger.debug("Updating page `%s` based on `md_file` file", page_id)
         html, page_id_from_meta, url, _has_images = self.md_file_to_html(page_id)
+        images = self.get_images_from_file()
+        self.attach_images(page_id, images)
 
         if page_id is None:
             logger.debug("Using `page_id` from `%s` file", self.md_file)
@@ -158,19 +172,12 @@ class ConfluenceMD(atlassian.Confluence):
             if has_images:
                 logger.debug("Uploading images to newly created page")
                 page_id = ConfluenceMD.get_page_id_from_response(response)
-                response = self.update_page(
-                    page_id,
-                    title,
-                    html,
-                    parent_id=None,
-                    type="page",
-                    representation="storage",
-                    minor_edit=True,
-                )
+                images = self.get_images_from_file()
+                self.attach_images(page_id, images)
 
         confluence_url = ConfluenceMD.get_link_from_response(response)
         logger.debug(
-            "%s %s", 'Page overwritten' if overwrite else 'New page created', confluence_url
+            "%s %s", 'Page overwritten' if overwrite_id else 'New page created', confluence_url
         )
 
         self.add_meta_to_file(confluence_url)
@@ -211,13 +218,10 @@ class ConfluenceMD(atlassian.Confluence):
             return stream.read()
 
     def md_file_to_html(self, page_id: Optional[str]) -> Tuple[Any, Optional[str], Optional[str], bool]:
-        """Converts given md_file to html + uploads images + extracts metadata from it"""
+        """Converts given md_file to html"""
 
         logger.debug("Converting MD to HTML")
-        content = self.get_file_contents(self.md_file)
-        images = []
-        for image in IMAGE_PATTERN.finditer(content):
-            images.append((image.group("alt"), image.group("path")))
+        images = self.get_images_from_file()
 
         html = markdown2.markdown_path(
             path=self.md_file,
@@ -255,6 +259,14 @@ class ConfluenceMD(atlassian.Confluence):
             return (page_id, host)
         logger.debug("  no valid Confluence url found")
         return (None, None)
+
+    def get_images_from_file(self) -> List:
+        logger.debug("Getting list of images from MD file")
+        content = self.get_file_contents(self.md_file)
+        images = []
+        for image in IMAGE_PATTERN.finditer(content):
+            images.append((image.group("alt"), image.group("path")))
+        return images
 
     def add_label_to_page(self, page_id: str) -> None:
         """Selfdescriptive"""
