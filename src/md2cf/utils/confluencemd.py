@@ -210,7 +210,7 @@ class ConfluenceMD(atlassian.Confluence):
         """Returns page title by given page_id"""
         logger.debug("Getting page title from page id `%s`", page_id)
         page = self.get_page_by_id(page_id)
-        assert not "title" in page, f"Expected page-object while getting page by id, got {page}"
+        assert "title" in page, f"Expected page-object while getting page by id, got {page}"
         return page["title"]
 
     @staticmethod
