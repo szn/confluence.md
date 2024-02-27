@@ -209,7 +209,9 @@ class ConfluenceMD(atlassian.Confluence):
     def get_page_title_by_id(self, page_id: str) -> str:
         """Returns page title by given page_id"""
         logger.debug("Getting page title from page id `%s`", page_id)
-        return self.get_page_by_id(page_id)["title"]
+        page = self.get_page_by_id(page_id)
+        assert not "title" in page, f"Expected page-object while getting page by id, got {page}"
+        return page["title"]
 
     @staticmethod
     def get_file_contents(file: str) -> str:
