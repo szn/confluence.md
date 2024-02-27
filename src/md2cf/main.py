@@ -136,6 +136,8 @@ Actions:
         globals()[args.action](args)
     except (RuntimeError, AssertionError, Exception) as error:
         logger.error(error)
+        if args.verbose:
+            raise error
         quit(-1)
 
 

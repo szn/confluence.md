@@ -48,7 +48,7 @@ class ConfluenceMD(atlassian.Confluence):
         for (alt, path) in images:
             rel_path = os.path.join(self.md_file_dir, path)
             if not os.path.isfile(rel_path):
-                assert os.path.isfile(path)
+                assert os.path.isfile(path), f"File `{path}` does not exist"
                 logger.warning("file `%s` does not exist, using file relative to current dir `%s`", rel_path, path)
                 rel_path = path
 
@@ -69,7 +69,7 @@ class ConfluenceMD(atlassian.Confluence):
         for (alt, path) in images:
             rel_path = os.path.join(self.md_file_dir, path)
             if not os.path.isfile(rel_path):
-                assert os.path.isfile(path)
+                assert os.path.isfile(path), f"File `{path}` does not exist"
                 logger.warning("file `%s` does not exist, using file relative to current dir `%s`", rel_path, path)
                 rel_path = path
 

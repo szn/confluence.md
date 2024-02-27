@@ -31,10 +31,6 @@ def init_logger(args):
     logging.getLogger("net.dirtyagile.confluence.md").level = logging.WARN if args.quiet else (logging.DEBUG if args.verbose else logging.INFO)
 
 
-def is_debug():
-    return logger.level <= logging.DEBUG
-
-
 def headline(msg, end=False):
     logger.info(colored(" {:80}".format(msg), 'blue',
             attrs=['reverse']))
