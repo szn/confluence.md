@@ -10,6 +10,7 @@ from .log import logger
 
 CF_URL = re.compile(r"(?P<host>https?://[^/]+)/.*/(?P<page_id>\d+)")
 IMAGE_PATTERN = re.compile(r"\!\[(?P<alt>.*)\]\((?P<path>[^:)]+)\)")
+ISSUE_PATTERN = re.compile(r"\[(?P<key>\w[\w\d]*-\d+)\]")
 
 
 class ConfluenceMD(atlassian.Confluence):
@@ -34,11 +35,35 @@ class ConfluenceMD(atlassian.Confluence):
             cloud=bool(token),
             token=token,
         )
+        self.jira = atlassian.Jira(
+            url=url,
+            username=username,
+            password=(password or token),
+            verify_ssl=verify_ssl,
+            cloud=bool(token),
+            token=token
+        )
         self.md_file = md_file
         self.add_meta = add_meta
         self.add_info_panel = add_info_panel
         self.add_label = add_label
         self.md_file_dir = os.path.dirname(md_file)
+
+    def rewrite_issues(self, html):
+        logger.debug("Replacing [ISSUE-KEY] with html links")
+        issues = []
+        for issue in ISSUE_PATTERN.finditer(html):
+            issues.append(issue.group("key"))
+
+        for key in issues:
+            logger.debug(f"  - [{key}] with html link")
+            issue = self.jira.issue(key)
+            summary = issue['fields']['summary']
+            status = issue['fields']['status']['name']
+            html = html.replace(
+                f"[{key}]",
+                f"<a href=\"{self.url}/browse/{key}\">{key} {summary} – {status}</a>")
+        return html
 
     def rewrite_images(
         self, page_id: str, html: str, images: List[Tuple[str, str]]
@@ -241,6 +266,7 @@ class ConfluenceMD(atlassian.Confluence):
         if self.add_info_panel:
             html = self.get_info_panel() + html
 
+        html = self.rewrite_issues(html)
         html = self.rewrite_images(page_id if page_id else page_id_from_meta, html, images)
         return html, page_id_from_meta, url, len(images) > 0
 
