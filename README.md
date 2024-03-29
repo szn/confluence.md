@@ -62,6 +62,7 @@ To create Atlassian API Token go to [api-tokens](https://id.atlassian.com/manage
 - `--add_meta`              adds metadata to .md file for easy editing
 - `--add_info`              adds info panel **automatic content** do not edit on top of the page
 - `--add_label` `ADD_LABEL` adds label to page
+- `--convert_jira`          converts all Jira links to issue snippets (either short [KEY-ID] format or full URL)
 - `-v`, `--verbose`         verbose mode
 - `-q`, `--quiet`           quiet mode
 
