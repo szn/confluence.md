@@ -7,10 +7,12 @@ import atlassian
 import markdown2
 
 from .log import logger
+from pprint import pprint
 
 CF_URL = re.compile(r"(?P<host>https?://[^/]+)/.*/(?P<page_id>\d+)")
 IMAGE_PATTERN = re.compile(r"\!\[(?P<alt>.*)\]\((?P<path>[^:)]+)\)")
-
+ISSUE_PATTERN = re.compile(r"\[(?P<key>\w[\w\d]*-\d+)\]")
+ISSUE_PATTERN_URL = re.compile(r"(?P<domain>https:\/\/\w+\.atlassian\.net)\/browse\/(?P<key>\w[\w\d]*-\d+)")
 
 class ConfluenceMD(atlassian.Confluence):
     def __init__(
@@ -24,6 +26,7 @@ class ConfluenceMD(atlassian.Confluence):
         add_meta: bool = False,
         add_info_panel: bool = False,
         add_label: str = None,
+        convert_jira: bool = False
     ) -> None:
         
         super().__init__(
@@ -34,11 +37,53 @@ class ConfluenceMD(atlassian.Confluence):
             cloud=bool(token),
             token=token,
         )
+        self.jira = atlassian.Jira(
+            url=url,
+            username=username,
+            password=(password or token),
+            verify_ssl=verify_ssl,
+            cloud=bool(token),
+            token=token
+        )
         self.md_file = md_file
         self.add_meta = add_meta
         self.add_info_panel = add_info_panel
         self.add_label = add_label
         self.md_file_dir = os.path.dirname(md_file)
+        self.convert_jira = convert_jira
+
+    def rewrite_issues(self, html):
+        if not self.convert_jira:
+            return
+        logger.debug("Replacing [ISSUE-KEY] with html links")
+        issues = []
+        for issue in ISSUE_PATTERN.finditer(html):
+            issues.append((issue.group(), issue.group("key")))
+        for issue in ISSUE_PATTERN_URL.finditer(html):
+            if self.url.startswith(issue.group("domain")):
+                issues.append((issue.group(), issue.group("key")))
+            else:
+                logger.info("Ignoring %s - domain mismatch (%s != %s)", issue.group(), issue.group("domain"), self.url)
+
+        for (replace, key) in issues:
+            logger.debug(f"  - [{key}] with html link")
+            (summary, status, issuetypeurl) = self.get_jira_issue(key)
+            if summary:
+                html = html.replace(replace,
+                    f"<a href=\"{self.url}/browse/{key}\"><ac:image><ri:url ri:value=\"{issuetypeurl}\" /></ac:image> {key}: {summary} [{status}]</a>")
+        return html
+
+    def get_jira_issue(self, key: str) -> tuple:
+        try:
+            issue = self.jira.issue(key)
+            summary = issue['fields']['summary']
+            status = issue['fields']['status']['name']
+            issuetypeurl = issue['fields']['issuetype']['iconUrl']
+            return (summary, status, issuetypeurl)
+        except (RuntimeError, AssertionError, Exception) as error:
+            logger.info("Unable to convert %s to Jira link: %s", key, error)
+            return (None, None, None)
+
 
     def rewrite_images(
         self, page_id: str, html: str, images: List[Tuple[str, str]]
@@ -241,6 +286,7 @@ class ConfluenceMD(atlassian.Confluence):
         if self.add_info_panel:
             html = self.get_info_panel() + html
 
+        html = self.rewrite_issues(html)
         html = self.rewrite_images(page_id if page_id else page_id_from_meta, html, images)
         return html, page_id_from_meta, url, len(images) > 0
 
