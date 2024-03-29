@@ -17,10 +17,16 @@ def register_action(function):
     return wrapper
 
 def init_confluence(args):
-    return ConfluenceMD(username=args.user, token=args.token,
-            password=args.password, md_file=args.file.name, url=args.url,
-            verify_ssl=(not args.no_verify_ssl), add_meta=args.add_meta,
-            add_info_panel=args.add_info, add_label=args.add_label)
+    return ConfluenceMD(username=args.user,
+                        token=args.token,
+                        password=args.password,
+                        md_file=args.file.name,
+                        url=args.url,
+                        verify_ssl=(not args.no_verify_ssl),
+                        add_meta=args.add_meta,
+                        add_info_panel=args.add_info,
+                        add_label=args.add_label,
+                        convert_jira=args.convert_jira)
 
 @register_action
 def update(args):
@@ -118,6 +124,8 @@ Actions:
             help="adds info panel **automatic content** do not edit on top of the page")
     parser.add_argument("--add_label", action="store",
             help="adds label to page")
+    parser.add_argument("--convert_jira", action="store_true",
+            help="convert all Jira links to issue snippets (either short [KEY-ID] format or full URL)")
 
     parser.add_argument("-v", "--verbose", action="store_true",
             help="verbose mode")
