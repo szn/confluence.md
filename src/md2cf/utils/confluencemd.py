@@ -84,9 +84,8 @@ class ConfluenceMD(atlassian.Confluence):
             logger.info("Unable to convert %s to Jira link: %s", key, error)
             return (None, None, None)
 
-
     def rewrite_images(
-        self, page_id: str, html: str, images: List[Tuple[str, str]]
+        self, html: str, images: List[Tuple[str, str]]
     ) -> str:
         """Replaces <img> html tags with Confluence specific <ac:image> and uploads
            images as attachements"""
@@ -287,7 +286,7 @@ class ConfluenceMD(atlassian.Confluence):
             html = self.get_info_panel() + html
 
         html = self.rewrite_issues(html)
-        html = self.rewrite_images(page_id if page_id else page_id_from_meta, html, images)
+        html = self.rewrite_images(html, images)
         return html, page_id_from_meta, url, len(images) > 0
 
     @staticmethod
