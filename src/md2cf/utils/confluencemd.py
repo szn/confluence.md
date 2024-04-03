@@ -67,13 +67,13 @@ class ConfluenceMD(atlassian.Confluence):
 
         for (replace, key) in issues:
             logger.debug(f"  - [{key}] with html link")
-            (summary, status, issuetypeurl) = self.get_jira_issue(key)
+            (summary, status, issuetypeurl) = self.__get_jira_issue(key)
             if summary:
                 html = html.replace(replace,
                     f"<a href=\"{self.url}/browse/{key}\"><ac:image><ri:url ri:value=\"{issuetypeurl}\" /></ac:image> {key}: {summary} [{status}]</a>")
         return html
 
-    def get_jira_issue(self, key: str) -> tuple:
+    def __get_jira_issue(self, key: str) -> tuple:
         try:
             issue = self.jira.issue(key)
             summary = issue['fields']['summary']
@@ -84,7 +84,7 @@ class ConfluenceMD(atlassian.Confluence):
             logger.info("Unable to convert %s to Jira link: %s", key, error)
             return (None, None, None)
 
-    def rewrite_images(
+    def __rewrite_images(
         self, html: str, images: List[Tuple[str, str]]
     ) -> str:
         """Replaces <img> html tags with Confluence specific <ac:image> and uploads
@@ -105,7 +105,7 @@ class ConfluenceMD(atlassian.Confluence):
                 logger.warning("image tag `%s` not found in html", old)
         return html
 
-    def attach_images(
+    def __attach_images(
             self, page_id: str, images: List[Tuple[str, str]]
     ) -> None:
         """Replaces <img> html tags with Confluence specific <ac:image> and uploads
@@ -123,9 +123,9 @@ class ConfluenceMD(atlassian.Confluence):
     def update_existing(self, page_id: str = None) -> None:
         """Updates an existing page by given page_id"""
         logger.debug("Updating page `%s` based on `md_file` file", page_id)
-        html, page_id_from_meta, url, _has_images = self.md_file_to_html(page_id)
-        images = self.get_images_from_file()
-        self.attach_images(page_id, images)
+        html, page_id_from_meta, url, _has_images = self.__md_file_to_html()
+        images = self.__get_images_from_file()
+        self.__attach_images(page_id, images)
 
         if page_id is None:
             logger.debug("Using `page_id` from `%s` file", self.md_file)
@@ -145,7 +145,7 @@ class ConfluenceMD(atlassian.Confluence):
             )
             self.init()
 
-        title = self.get_page_title_by_id(page_id)
+        title = self.__get_page_title_by_id(page_id)
 
         logger.debug("Updating page_id `%s` titled `%s`", page_id, title)
         response = self.update_page(
@@ -159,11 +159,11 @@ class ConfluenceMD(atlassian.Confluence):
         )
 
         if self.add_meta:
-            confluence_url = ConfluenceMD.get_link_from_response(response)
-            self.add_meta_to_file(confluence_url)
+            confluence_url = ConfluenceMD.__get_link_from_response(response)
+            self.__add_meta_to_file(confluence_url)
 
         if self.add_label:
-            self.add_label_to_page(page_id)
+            self.__add_label_to_page(page_id)
 
     def create_page(self, parent_id: str, title: str, overwrite: bool) -> None:
         """Creates a new page under give parent_id"""
@@ -179,7 +179,7 @@ class ConfluenceMD(atlassian.Confluence):
                 f"the `{space}` space. Use --overwrite to force it."
             )
 
-        html, page_id_from_meta, _url, has_images = self.md_file_to_html(page_id)
+        html, page_id_from_meta, _url, has_images = self.__md_file_to_html()
         assert not page_id_from_meta or overwrite, (
             f"Metadata pointing to an existing page "
             f"id `{page_id_from_meta}` present in the given markdown file. "
@@ -215,42 +215,42 @@ class ConfluenceMD(atlassian.Confluence):
             )
             if has_images:
                 logger.debug("Uploading images to newly created page")
-                page_id = ConfluenceMD.get_page_id_from_response(response)
-                images = self.get_images_from_file()
-                self.attach_images(page_id, images)
+                page_id = ConfluenceMD.__get_page_id_from_response(response)
+                images = self.__get_images_from_file()
+                self.__attach_images(page_id, images)
 
-        confluence_url = ConfluenceMD.get_link_from_response(response)
+        confluence_url = ConfluenceMD.__get_link_from_response(response)
         logger.debug(
             "%s %s", 'Page overwritten' if overwrite_id else 'New page created', confluence_url
         )
 
-        self.add_meta_to_file(confluence_url)
+        self.__add_meta_to_file(confluence_url)
 
-        page_id = ConfluenceMD.get_page_id_from_response(response)
-        self.add_label_to_page(page_id)
+        page_id = ConfluenceMD.__get_page_id_from_response(response)
+        self.__add_label_to_page(page_id)
 
     @staticmethod
-    def get_link_from_response(response) -> str:
+    def __get_link_from_response(response) -> str:
         """Returns URL to page from Confluence API response"""
         return response["_links"]["base"] + response["_links"]["webui"]
 
     @staticmethod
-    def get_page_id_from_response(response) -> str:
+    def __get_page_id_from_response(response) -> str:
         """Returns page_id from Confluence API response"""
         return response["id"]
 
-    def add_meta_to_file(self, confluence_url: str) -> None:
+    def __add_meta_to_file(self, confluence_url: str) -> None:
         """Decorates markdown file with metadata in comments"""
         if not self.add_meta:
             return
 
-        markdown = ConfluenceMD.get_file_contents(self.md_file)
+        markdown = ConfluenceMD.__get_file_contents(self.md_file)
         markdown = ("---\n" f"confluence-url: {confluence_url}\n" "---\n") + markdown
 
         with open(self.md_file, "w", encoding="utf-8") as stream:
             stream.write(markdown)
 
-    def get_page_title_by_id(self, page_id: str) -> str:
+    def __get_page_title_by_id(self, page_id: str) -> str:
         """Returns page title by given page_id"""
         logger.debug("Getting page title from page id `%s`", page_id)
         page = self.get_page_by_id(page_id)
@@ -258,16 +258,16 @@ class ConfluenceMD(atlassian.Confluence):
         return page["title"]
 
     @staticmethod
-    def get_file_contents(file: str) -> str:
+    def __get_file_contents(file: str) -> str:
         """Return file contents"""
         with open(file, "r", encoding="utf-8") as stream:
             return stream.read()
 
-    def md_file_to_html(self, page_id: Optional[str]) -> Tuple[Any, Optional[str], Optional[str], bool]:
+    def __md_file_to_html(self) -> Tuple[Any, Optional[str], Optional[str], bool]:
         """Converts given md_file to html"""
 
         logger.debug("Converting MD to HTML")
-        images = self.get_images_from_file()
+        images = self.__get_images_from_file()
 
         html = markdown2.markdown_path(
             path=self.md_file,
@@ -281,16 +281,16 @@ class ConfluenceMD(atlassian.Confluence):
                 "footnotes",
             ],
         )
-        page_id_from_meta, url = ConfluenceMD.parse_confluence_url(html.metadata)
+        page_id_from_meta, url = ConfluenceMD.__parse_confluence_url(html.metadata)
         if self.add_info_panel:
-            html = self.get_info_panel() + html
+            html = self.__get_info_panel() + html
 
-        html = self.rewrite_issues(html)
-        html = self.rewrite_images(html, images)
+        html = self.__rewrite_issues(html)
+        html = self.__rewrite_images(html, images)
         return html, page_id_from_meta, url, len(images) > 0
 
     @staticmethod
-    def parse_confluence_url(meta: Dict[str, str]) -> Tuple[Optional[str], Optional[str]]:
+    def __parse_confluence_url(meta: Dict[str, str]) -> Tuple[Optional[str], Optional[str]]:
         """Parses Confluence page URL and returns page_id and host"""
         if "confluence-url" not in meta:
             return (None, None)
@@ -307,21 +307,21 @@ class ConfluenceMD(atlassian.Confluence):
         logger.debug("  no valid Confluence url found")
         return (None, None)
 
-    def get_images_from_file(self) -> List:
+    def __get_images_from_file(self) -> List:
         logger.debug("Getting list of images from MD file")
-        content = self.get_file_contents(self.md_file)
+        content = self.__get_file_contents(self.md_file)
         images = []
         for image in IMAGE_PATTERN.finditer(content):
             images.append((image.group("alt"), image.group("path")))
         return images
 
-    def add_label_to_page(self, page_id: str) -> None:
+    def __add_label_to_page(self, page_id: str) -> None:
         """Selfdescriptive"""
         if not self.add_label:
             return
         self.set_page_label(page_id, self.add_label)
 
-    def get_info_panel(self) -> str:
+    def __get_info_panel(self) -> str:
         """Returns str with html info page to be placed on a Confluence page if --add_info is added"""
         return f"""<p><strong>Automatic content</strong> This page was generated automatically from <code>{self.md_file}</code> file.
         Do not edit it on Confluence.</p><hr />
