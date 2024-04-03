@@ -7,7 +7,8 @@ import atlassian
 import markdown2
 
 from .log import logger
-from pprint import pprint
+import requests
+from  urllib import parse
 
 CF_URL = re.compile(r"(?P<host>https?://[^/]+)/.*/(?P<page_id>\d+)")
 IMAGE_PATTERN = re.compile(r"\!\[(?P<alt>.*)\]\((?P<path>[^:)]+)\)")
@@ -37,14 +38,15 @@ class ConfluenceMD(atlassian.Confluence):
             cloud=bool(token),
             token=token,
         )
-        self.jira = atlassian.Jira(
-            url=url,
-            username=username,
-            password=(password or token),
-            verify_ssl=verify_ssl,
-            cloud=bool(token),
-            token=token
-        )
+
+        if convert_jira:
+            self.__init_jira(
+                url=url,
+                username=username,
+                password=(password or token),
+                verify_ssl=verify_ssl,
+                token=token
+            )
         self.md_file = md_file
         self.add_meta = add_meta
         self.add_info_panel = add_info_panel
@@ -108,17 +110,25 @@ class ConfluenceMD(atlassian.Confluence):
     def __attach_images(
             self, page_id: str, images: List[Tuple[str, str]]
     ) -> None:
-        """Replaces <img> html tags with Confluence specific <ac:image> and uploads
-           images as attachements"""
-        for (alt, path) in images:
-            rel_path = os.path.join(self.md_file_dir, path)
-            if not os.path.isfile(rel_path):
-                assert os.path.isfile(path), f"File `{path}` does not exist"
-                logger.warning("file `%s` does not exist, using file relative to current dir `%s`", rel_path, path)
-                rel_path = path
-
-            logger.debug("register image file `%s`", rel_path)
-            self.attach_file(filename=rel_path, page_id=page_id)
+        self.jira = atlassian.Jira(
+                url=url,
+                username=username,
+                password=(password or token),
+                verify_ssl=verify_ssl,
+                cloud=bool(token),
+                token=token
+            )
+        self.license = False
+        try:
+            uri = parse.urljoin(url, 'wiki/rest/atlassian-connect/1/addons/confluence.md')
+            res = requests.get(uri, auth=(username, password or token))
+            license = res.json()
+            if res.status_code != 200:
+                logger.error(license)
+                return
+            self.license = license["license"]["active"]
+        except (RuntimeError, AssertionError, Exception) as error:
+            logger.error(error)
 
     def update_existing(self, page_id: str = None) -> None:
         """Updates an existing page by given page_id"""
