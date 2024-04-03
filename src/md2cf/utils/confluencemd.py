@@ -239,6 +239,74 @@ class ConfluenceMD(atlassian.Confluence):
         page_id = ConfluenceMD.__get_page_id_from_response(response)
         self.__add_label_to_page(page_id)
 
+    def __rewrite_issues(self, html):
+        if not self.convert_jira:
+            return
+        logger.debug("Replacing [ISSUE-KEY] with html links")
+        issues = []
+        for issue in ISSUE_PATTERN.finditer(html):
+            issues.append((issue.group(), issue.group("key")))
+        for issue in ISSUE_PATTERN_URL.finditer(html):
+            if self.url.startswith(issue.group("domain")):
+                issues.append((issue.group(), issue.group("key")))
+            else:
+                logger.info("Ignoring %s - domain mismatch (%s != %s)", issue.group(), issue.group("domain"), self.url)
+
+        for (replace, key) in issues:
+            logger.debug(f"  - [{key}] with html link")
+            (summary, status, issuetypeurl) = self.__get_jira_issue(key)
+            if summary:
+                html = html.replace(replace,
+                    f"<a href=\"{self.url}/browse/{key}\"><ac:image><ri:url ri:value=\"{issuetypeurl}\" /></ac:image> {key}: {summary} [{status}]</a>")
+        return html
+
+    def __get_jira_issue(self, key: str) -> tuple:
+        try:
+            issue = self.jira.issue(key)
+            summary = issue['fields']['summary']
+            status = issue['fields']['status']['name']
+            issuetypeurl = issue['fields']['issuetype']['iconUrl']
+            return (summary, status, issuetypeurl)
+        except (RuntimeError, AssertionError, Exception) as error:
+            logger.info("Unable to convert %s to Jira link: %s", key, error)
+            return (None, None, None)
+
+    def __rewrite_images(
+        self, html: str, images: List[Tuple[str, str]]
+    ) -> str:
+        """Replaces <img> html tags with Confluence specific <ac:image> and uploads
+           images as attachements"""
+        for (alt, path) in images:
+            rel_path = os.path.join(self.md_file_dir, path)
+            if not os.path.isfile(rel_path):
+                assert os.path.isfile(path), f"File `{path}` does not exist"
+                logger.warning("file `%s` does not exist, using file relative to current dir `%s`", rel_path, path)
+                rel_path = path
+
+            old = f'<img src="{path}" alt="{alt}" />'
+            new = f'<ac:image> <ri:attachment ri:filename="{os.path.basename(rel_path)}" /> </ac:image>'
+            if html.find(old) != -1:
+                logger.debug("replace image tag `%s` with `%s`", old, new)
+                html = html.replace(old, new)
+            else:
+                logger.warning("image tag `%s` not found in html", old)
+        return html
+
+    def __attach_images(
+            self, page_id: str, images: List[Tuple[str, str]]
+    ) -> None:
+        """Replaces <img> html tags with Confluence specific <ac:image> and uploads
+           images as attachements"""
+        for (alt, path) in images:
+            rel_path = os.path.join(self.md_file_dir, path)
+            if not os.path.isfile(rel_path):
+                assert os.path.isfile(path), f"File `{path}` does not exist"
+                logger.warning("file `%s` does not exist, using file relative to current dir `%s`", rel_path, path)
+                rel_path = path
+
+            logger.debug("register image file `%s`", rel_path)
+            self.attach_file(filename=rel_path, page_id=page_id)
+
     @staticmethod
     def __get_link_from_response(response) -> str:
         """Returns URL to page from Confluence API response"""
