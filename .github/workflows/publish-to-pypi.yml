@@ -21,6 +21,16 @@ jobs:
         pip install
         build
         --user
+    - name: test
+      shell: bash
+      env:
+        CONFLUENCE_USER: ${{ secrets.CONFLUENCE_USER }}
+        CONFLUENCE_TOKEN: ${{ secrets.CONFLUENCE_TOKEN }}
+      run: >-
+        pytest
+        -c "import src.tests.test_confluencemd"
+        --user="$CONFLUENCE_USER"
+        --token="$CONFLUENCE_TOKEN"
     - name: Build a binary wheel and a source tarball
       run: >-
         python -m
