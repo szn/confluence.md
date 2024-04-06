@@ -5,4 +5,4 @@ confluence-url: https://dirtyagile.atlassian.net/wiki/spaces/AD/pages/1115848706
 
 [KEY-1]
 
-https://dirtyagil.atlassian.net/browse/AD-120
+https://dirtyagile.atlassian.net/browse/AD-120

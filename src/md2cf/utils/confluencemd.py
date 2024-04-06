@@ -240,9 +240,9 @@ class ConfluenceMD(atlassian.Confluence):
         self.__add_label_to_page(page_id)
 
     def __rewrite_issues(self, html):
-        if not self.convert_jira:
-            return
-        logger.debug("Replacing [ISSUE-KEY] with html links")
+        if self.convert_jira:
+            logger.debug("Replacing [ISSUE-KEY] with html links")
+
         issues = []
         for issue in ISSUE_PATTERN.finditer(html):
             issues.append((issue.group(), issue.group("key")))
@@ -250,7 +250,14 @@ class ConfluenceMD(atlassian.Confluence):
             if self.url.startswith(issue.group("domain")):
                 issues.append((issue.group(), issue.group("key")))
             else:
-                logger.info("Ignoring %s - domain mismatch (%s != %s)", issue.group(), issue.group("domain"), self.url)
+                if self.convert_jira:
+                    logger.info("Ignoring %s - domain mismatch (%s != %s)", issue.group(), issue.group("domain"), self.url)
+        
+        if len(issues) and not self.convert_jira:
+            (replace, key) = issues[0]
+            logger.info("Use --convert_jira to replace %i Jira link(s) (such as %s) with issue snippets - KEY: summary [status]",
+                        len(issues), key)
+            return html
 
         for (replace, key) in issues:
             logger.debug(f"  - [{key}] with html link")
