@@ -52,9 +52,9 @@ class ConfluenceMD(atlassian.Confluence):
         self.md_file_dir = os.path.dirname(md_file)
         self.convert_jira = convert_jira
 
-    def rewrite_issues(self, html):
+    def rewrite_issues(self, html: str) -> str:
         if not self.convert_jira:
-            return
+            return html
         logger.debug("Replacing [ISSUE-KEY] with html links")
         issues = []
         for issue in ISSUE_PATTERN.finditer(html):
