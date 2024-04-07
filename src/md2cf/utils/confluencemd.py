@@ -60,62 +60,12 @@ class ConfluenceMD(atlassian.Confluence):
         self.md_file_dir = os.path.dirname(md_file)
         self.convert_jira = convert_jira
 
-    def rewrite_issues(self, html: str) -> str:
-        if not self.convert_jira:
-            return html
-        logger.debug("Replacing [ISSUE-KEY] with html links")
-        issues = []
-        for issue in ISSUE_PATTERN.finditer(html):
-            issues.append((issue.group(), issue.group("key")))
-        for issue in ISSUE_PATTERN_URL.finditer(html):
-            if self.url.startswith(issue.group("domain")):
-                issues.append((issue.group(), issue.group("key")))
-            else:
-                logger.info("Ignoring %s - domain mismatch (%s != %s)", issue.group(), issue.group("domain"), self.url)
-
-        for (replace, key) in issues:
-            logger.debug(f"  - [{key}] with html link")
-            (summary, status, issuetypeurl) = self.__get_jira_issue(key)
-            if summary:
-                html = html.replace(replace,
-                    f"<a href=\"{self.url}/browse/{key}\"><ac:image><ri:url ri:value=\"{issuetypeurl}\" /></ac:image> {key}: {summary} [{status}]</a>")
-        return html
-
-    def __get_jira_issue(self, key: str) -> tuple:
-        try:
-            issue = self.jira.issue(key)
-            summary = issue['fields']['summary']
-            status = issue['fields']['status']['name']
-            issuetypeurl = issue['fields']['issuetype']['iconUrl']
-            return (summary, status, issuetypeurl)
-        except (RuntimeError, AssertionError, Exception) as error:
-            logger.info("Unable to convert %s to Jira link: %s", key, error)
-            return (None, None, None)
-
-    def __rewrite_images(
-        self, html: str, images: List[Tuple[str, str]]
-    ) -> str:
-        """Replaces <img> html tags with Confluence specific <ac:image> and uploads
-           images as attachements"""
-        for (alt, path) in images:
-            rel_path = os.path.join(self.md_file_dir, path)
-            if not os.path.isfile(rel_path):
-                assert os.path.isfile(path), f"File `{path}` does not exist"
-                logger.warning("file `%s` does not exist, using file relative to current dir `%s`", rel_path, path)
-                rel_path = path
-
-            old = f'<img src="{path}" alt="{alt}" />'
-            new = f'<ac:image> <ri:attachment ri:filename="{os.path.basename(rel_path)}" /> </ac:image>'
-            if html.find(old) != -1:
-                logger.debug("replace image tag `%s` with `%s`", old, new)
-                html = html.replace(old, new)
-            else:
-                logger.warning("image tag `%s` not found in html", old)
-        return html
-
-    def __attach_images(
-            self, page_id: str, images: List[Tuple[str, str]]
-    ) -> None:
+    def __init_jira(self,
+                    url: str,
+                    username: str,
+                    password: str,
+                    verify_ssl: bool,
+                    token: str):
         self.jira = atlassian.Jira(
                 url=url,
                 username=username,
@@ -250,7 +200,7 @@ class ConfluenceMD(atlassian.Confluence):
             logger.debug("Replacing [ISSUE-KEY] with html links")
 
         issues = []
-        for issue in ISSUE_PATTERN.finditer(html):
+        for issue in ISSUE_PATTERN_KEY.finditer(html):
             issues.append((issue.group(), issue.group("key")))
         for issue in ISSUE_PATTERN_URL.finditer(html):
             if self.url.startswith(issue.group("domain")):
@@ -413,7 +363,9 @@ class ConfluenceMD(atlassian.Confluence):
         content = self.__get_file_contents(self.md_file)
         images = []
         for image in IMAGE_PATTERN.finditer(content):
-            images.append((image.group("alt"), image.group("path")))
+            path = image.group("path")
+            images.append((image.group("alt"), path))
+            logger.debug("  - found image %s", path)
         return images
 
     def __add_label_to_page(self, page_id: str) -> None:
