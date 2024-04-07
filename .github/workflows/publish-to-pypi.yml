@@ -29,6 +29,7 @@ jobs:
         -c "import src.tests.test_confluencemd"
         --user="$CONFLUENCE_USER"
         --token="$CONFLUENCE_TOKEN"
+        -vv
     - name: Install pypi/build
       run: python -m pip install build --user
     - name: Build a binary wheel and a source tarball
