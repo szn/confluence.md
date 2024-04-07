@@ -55,5 +55,15 @@ class TestConfluenceMD:
         for record in caplog.records:
             assert record.levelname in ["INFO", "DEBUG"]
         assert "Use --convert_jira to replace 2 Jira link" in caplog.text
-        
-    
+
+    def test_images(self, capsys, caplog, user, token):
+        conf_md = TestConfluenceMD.init_confluencemd(user, token, "src/tests/test_images.md")
+
+        conf_md.create_page("1115881473", "Images test", True)
+
+        captured = capsys.readouterr()
+        assert captured.out == ""
+
+        for record in caplog.records:
+            assert record.levelname in ["INFO", "DEBUG"]
+        assert "Use --convert_jira to replace 2 Jira link" in caplog.text
