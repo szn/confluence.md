@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+"""
+confluence.md
+Push markdown files straight to a Confluence page.
+"""
+
 import sys
 import argparse
 from argparse import RawTextHelpFormatter
@@ -9,6 +14,7 @@ from .utils.confluencemd import ConfluenceMD
 ACTIONS = {}
 
 def register_action(function):
+    """Register command line action function decorator"""
     ACTIONS[function.__name__] = function.__doc__
     def wrapper(args):
         headline(function.__doc__)
@@ -125,7 +131,8 @@ Actions:
     parser.add_argument("--add_label", action="store",
             help="adds label to page")
     parser.add_argument("--convert_jira", action="store_true",
-            help="convert all Jira links to issue snippets (either short [KEY-ID] format or full URL)")
+            help="convert all Jira links to issue snippets "
+                 "(either short [KEY-ID] format or full URL)")
 
     parser.add_argument("-v", "--verbose", action="store_true",
             help="verbose mode")
@@ -142,6 +149,7 @@ Actions:
 
     try:
         globals()[args.action](args)
+    # pylint: disable=broad-exception-caught
     except (RuntimeError, AssertionError, Exception) as error:
         logger.error(error)
         if args.verbose:

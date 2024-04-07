@@ -1,21 +1,27 @@
-import re
+"""
+Confluence to Markdown utility
+"""
 import os
-
+import re
+from  urllib import parse
 from typing import Any, List, Tuple, Optional, Dict
+import requests
 
 import atlassian
 import markdown2
 
 from .log import logger
-import requests
-from  urllib import parse
+
 
 CF_URL = re.compile(r"(?P<host>https?://[^/]+)/.*/(?P<page_id>\d+)")
 IMAGE_PATTERN = re.compile(r"\!\[(?P<alt>.*)\]\((?P<path>[^:)]+)\)")
-ISSUE_PATTERN = re.compile(r"\[(?P<key>\w[\w\d]*-\d+)\]")
-ISSUE_PATTERN_URL = re.compile(r"(?P<domain>https:\/\/\w+\.atlassian\.net)\/browse\/(?P<key>\w[\w\d]*-\d+)")
+ISSUE_PATTERN_KEY = re.compile(r"\[(?P<key>\w[\w\d]*-\d+)\]")
+ISSUE_PATTERN_URL = re.compile(r"(?P<domain>https:\/\/\w+\.atlassian\.net)"
+                               r"\/browse\/(?P<key>\w[\w\d]*-\d+)")
 
 class ConfluenceMD(atlassian.Confluence):
+    """Confluence to Markdown utility class"""
+
     def __init__(
         self,
         username: str,
@@ -29,7 +35,7 @@ class ConfluenceMD(atlassian.Confluence):
         add_label: str = None,
         convert_jira: bool = False
     ) -> None:
-        
+
         super().__init__(
             url=url,
             username=username,
@@ -121,12 +127,13 @@ class ConfluenceMD(atlassian.Confluence):
         self.license = False
         try:
             uri = parse.urljoin(url, 'wiki/rest/atlassian-connect/1/addons/confluence.md')
-            res = requests.get(uri, auth=(username, password or token))
-            license = res.json()
+            res = requests.get(uri, auth=(username, password or token), timeout=30)
+            license_obj = res.json()
             if res.status_code != 200:
-                logger.error(license)
+                logger.error(license_obj)
                 return
-            self.license = license["license"]["active"]
+            self.license = license_obj["license"]["active"]
+        # pylint: disable=broad-exception-caught
         except (RuntimeError, AssertionError, Exception) as error:
             logger.error(error)
 
@@ -153,7 +160,6 @@ class ConfluenceMD(atlassian.Confluence):
                 f"Can't update page without url given either by "
                 f"`--url` parameter or via `confluence-url` tag in `{self.md_file}` file`"
             )
-            self.init()
 
         title = self.__get_page_title_by_id(page_id)
 
@@ -251,20 +257,26 @@ class ConfluenceMD(atlassian.Confluence):
                 issues.append((issue.group(), issue.group("key")))
             else:
                 if self.convert_jira:
-                    logger.info("Ignoring %s - domain mismatch (%s != %s)", issue.group(), issue.group("domain"), self.url)
-        
-        if len(issues) and not self.convert_jira:
+                    logger.info("Ignoring %s - domain mismatch (%s != %s)",
+                                issue.group(),
+                                issue.group("domain"),
+                                self.url)
+
+        if issues and not self.convert_jira:
             (replace, key) = issues[0]
-            logger.info("Use --convert_jira to replace %i Jira link(s) (such as %s) with issue snippets - KEY: summary [status]",
+            logger.info("Use --convert_jira to replace %i Jira link(s) (such as %s) "
+                        "with issue snippets - KEY: summary [status]",
                         len(issues), key)
             return html
 
         for (replace, key) in issues:
-            logger.debug(f"  - [{key}] with html link")
+            logger.debug("  - [%s] with html link", key)
             (summary, status, issuetypeurl) = self.__get_jira_issue(key)
             if summary:
                 html = html.replace(replace,
-                    f"<a href=\"{self.url}/browse/{key}\"><ac:image><ri:url ri:value=\"{issuetypeurl}\" /></ac:image> {key}: {summary} [{status}]</a>")
+                    f"<a href=\"{self.url}/browse/{key}\"><ac:image>"
+                    f"<ri:url ri:value=\"{issuetypeurl}\" />"
+                    f"</ac:image> {key}: {summary} [{status}]</a>")
         return html
 
     def __get_jira_issue(self, key: str) -> tuple:
@@ -274,6 +286,7 @@ class ConfluenceMD(atlassian.Confluence):
             status = issue['fields']['status']['name']
             issuetypeurl = issue['fields']['issuetype']['iconUrl']
             return (summary, status, issuetypeurl)
+        # pylint: disable=broad-exception-caught
         except (RuntimeError, AssertionError, Exception) as error:
             logger.info("Unable to convert %s to Jira link: %s", key, error)
             return (None, None, None)
@@ -287,11 +300,13 @@ class ConfluenceMD(atlassian.Confluence):
             rel_path = os.path.join(self.md_file_dir, path)
             if not os.path.isfile(rel_path):
                 assert os.path.isfile(path), f"File `{path}` does not exist"
-                logger.warning("file `%s` does not exist, using file relative to current dir `%s`", rel_path, path)
+                logger.warning("file `%s` does not exist, using file relative to "
+                               "current dir `%s`", rel_path, path)
                 rel_path = path
 
             old = f'<img src="{path}" alt="{alt}" />'
-            new = f'<ac:image> <ri:attachment ri:filename="{os.path.basename(rel_path)}" /> </ac:image>'
+            new = f'<ac:image> <ri:attachment ri:filename="{os.path.basename(rel_path)}" />' \
+                  '</ac:image>'
             if html.find(old) != -1:
                 logger.debug("replace image tag `%s` with `%s`", old, new)
                 html = html.replace(old, new)
@@ -304,11 +319,12 @@ class ConfluenceMD(atlassian.Confluence):
     ) -> None:
         """Replaces <img> html tags with Confluence specific <ac:image> and uploads
            images as attachements"""
-        for (alt, path) in images:
+        for (_alt, path) in images:
             rel_path = os.path.join(self.md_file_dir, path)
             if not os.path.isfile(rel_path):
                 assert os.path.isfile(path), f"File `{path}` does not exist"
-                logger.warning("file `%s` does not exist, using file relative to current dir `%s`", rel_path, path)
+                logger.warning("File `%s` does not exist, using file relative "
+                               "to current dir `%s`", rel_path, path)
                 rel_path = path
 
             logger.debug("register image file `%s`", rel_path)
@@ -407,7 +423,11 @@ class ConfluenceMD(atlassian.Confluence):
         self.set_page_label(page_id, self.add_label)
 
     def __get_info_panel(self) -> str:
-        """Returns str with html info page to be placed on a Confluence page if --add_info is added"""
-        return f"""<p><strong>Automatic content</strong> This page was generated automatically from <code>{self.md_file}</code> file.
-        Do not edit it on Confluence.</p><hr />
+        """
+        Returns str with html info page to be placed on a Confluence page
+        if --add_info is added
+        """
+        return f"""
+            <p><strong>Automatic content</strong> This page was generated automatically from
+            <code>{self.md_file}</code> file.Do not edit it on Confluence.</p><hr />
         """
