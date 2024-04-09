@@ -3,49 +3,92 @@ Automatic tests for Confluence.md
 """
 import logging
 import pytest
-
+import requests
 
 from atlassian.errors import ApiError
 from src.md2cf.utils.confluencemd import ConfluenceMD
 
+
 logging.getLogger("net.dirtyagile.confluence.md").setLevel('DEBUG')
+
+#log = logging.getLogger('urllib3')
+#log.setLevel(logging.DEBUG)
 
 # pylint: disable=missing-function-docstring,missing-class-docstring
 class TestConfluenceMD:
+    url: str = None
+    auth = None
 
+    def __confluence_request(self, method: str, endpoint: str):
+        response = requests.request(
+            method,
+            self.url + endpoint,
+            headers={ "Accept": "application/json" },
+            auth=self.auth,
+            timeout=10
+        )
+        if response.text:
+            return response.json()
+        return None
+
+    @pytest.fixture(autouse=True)
+    def cleanup(self, url, user, token):
+        self.url = url
+        self.auth = requests.auth.HTTPBasicAuth(user, token)
+        # https://dirtyagile.atlassian.net/wiki/spaces/AD/pages/1115881473/Pytests
+        pytests_id = 1115881473
+        test_pages = self.__confluence_request("GET", f'api/v2/pages/{pytests_id}/children')
+        for page in test_pages['results']:
+            if page['status'] == 'trashed':
+                continue
+            page_id = page['id']
+            self.__confluence_request("DELETE", f"api/v2/pages/{page_id}")
+
+    
     @staticmethod
-    def init_confluencemd(user, token, md_file):
+    def init_confluencemd(user: str, token: str, url: str, md_file: str) -> None:
         return ConfluenceMD(username=user,
                             md_file=md_file,
                             token=token,
-                            url="https://dirtyagile.atlassian.net/wiki/")
+                            url=url)
 
-    def test_create_page(self, capsys, caplog, user, token):
-        conf_md = TestConfluenceMD.init_confluencemd(user, token, "src/tests/test_basic.md")
+    def test_create_page(self, capsys, caplog, user, token, url):
+        md_file = "src/tests/test_basic.md"
+        title = "Basic test"
+        conf_md = TestConfluenceMD.init_confluencemd(user=user, token=token, url=url,
+                                                     md_file=md_file)
         with pytest.raises(AssertionError, match=r"Provide parent_id for a newly created page"):
-            conf_md.create_page("", "Basic test", None)
+            conf_md.create_page("", title, None)
 
         with pytest.raises(AssertionError, match=r"Provide a title for a newly created page"):
             conf_md.create_page("1115881473", "", None)
 
-        with pytest.raises(AssertionError, match=r"Page titled `Basic test` already exists.*"):
-            conf_md.create_page("1115881473", "Basic test", False)
-
         with pytest.raises(ApiError, match=r"There is no content with the given id.*"):
-            conf_md.create_page("1", "Basic test", False)
+            conf_md.create_page("1", title, False)
 
-        with pytest.raises(AssertionError, match=r"Metadata pointing to an existing page id.*"):
-            conf_md.create_page("1115881473", "Basic test 2", False)
+        page_id = conf_md.create_page("1115881473", title, False)
+        
+        with pytest.raises(AssertionError, match=r"Page titled `Basic test` already exists.*"):
+            conf_md.create_page("1115881473", title, False)
 
         captured = capsys.readouterr()
         assert captured.out == ""
 
         for record in caplog.records:
             assert record.levelname == "DEBUG"
-        assert "found page_id `1117683721`" in caplog.text
+        assert f"Creating new page `{title}` based on `{md_file}` file"
+        assert "New page created" in caplog.text
+        assert f"{page_id}" in caplog.text
 
-    def test_jira_links(self, capsys, caplog, user, token):
-        conf_md = TestConfluenceMD.init_confluencemd(user, token, "src/tests/test_jira.md")
+    def test_create_page_metadata(self, user, token, url):
+        conf_md = TestConfluenceMD.init_confluencemd(user=user, token=token, url=url,
+                                                     md_file="src/tests/test_metadata.md")
+        with pytest.raises(AssertionError, match=r"Metadata pointing to an existing page id.*"):
+            conf_md.create_page("1115881473", "Basic test 2", False)
+
+    def test_jira_links(self, capsys, caplog, user, token, url):
+        conf_md = TestConfluenceMD.init_confluencemd(user=user, token=token, url=url,
+                                                     md_file="src/tests/test_jira.md")
 
         conf_md.create_page("1115881473", "Jira test", True)
 
@@ -56,9 +99,10 @@ class TestConfluenceMD:
             assert record.levelname in ["INFO", "DEBUG"]
         assert "Use --convert_jira to replace 2 Jira link" in caplog.text
 
-    def test_wrong_images(self, user, token):
-        conf_md = TestConfluenceMD.init_confluencemd(user, token, "src/tests/test_images.md")
+    def test_wrong_images(self, user, token, url):
+        conf_md = TestConfluenceMD.init_confluencemd(user=user, token=token, url=url,
+                                                     md_file="src/tests/test_images.md")
 
-        with pytest.raises(FileNotFoundError, match=r"No such file or directory: 'src/tests/test_images.md'"):
+        with pytest.raises(FileNotFoundError,
+                           match=r"No such file or directory: 'src/tests/test_images.md'"):
             conf_md.create_page("1115881473", "Images test", True)
-
