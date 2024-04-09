@@ -32,9 +32,10 @@ class ConfluenceMD(atlassian.Confluence):
         add_label: str = None,
         convert_jira: bool = False
     ) -> None:
-
+        jira_url = parse.urljoin(url, '/')
+        conf_url = parse.urljoin(url, '/wiki/')
         super().__init__(
-            url=url,
+            url=conf_url,
             username=username,
             password=(password or token),
             verify_ssl=verify_ssl,
@@ -44,7 +45,7 @@ class ConfluenceMD(atlassian.Confluence):
 
         if convert_jira:
             self.__init_jira(
-                url=url,
+                url=jira_url,
                 username=username,
                 password=(password or token),
                 verify_ssl=verify_ssl,
@@ -77,12 +78,11 @@ class ConfluenceMD(atlassian.Confluence):
             res = requests.get(uri, auth=(username, password or token), timeout=30)
             license_obj = res.json()
             if res.status_code != 200:
-                logger.error(license_obj)
                 return
             self.license = license_obj["license"]["active"]
         # pylint: disable=broad-exception-caught
-        except (RuntimeError, AssertionError, Exception) as error:
-            logger.error(error)
+        except (RuntimeError, AssertionError, Exception):
+            pass
 
     def update_existing(self, page_id: str = None) -> int:
         """Updates an existing page by given page_id"""
