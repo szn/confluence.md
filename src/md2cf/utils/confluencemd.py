@@ -127,7 +127,7 @@ class ConfluenceMD(atlassian.Confluence):
 
         if self.add_label:
             self.__add_label_to_page(page_id)
-        
+
         return page_id
 
     def create_page(self, parent_id: str, title: str, overwrite: bool) -> int:

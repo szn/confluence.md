@@ -2,6 +2,8 @@
 Automatic tests for Confluence.md
 """
 import logging
+from  urllib import parse
+
 import pytest
 import requests
 
@@ -9,10 +11,8 @@ from atlassian.errors import ApiError
 from src.md2cf.utils.confluencemd import ConfluenceMD
 
 
-logging.getLogger("net.dirtyagile.confluence.md").setLevel('DEBUG')
-
-#log = logging.getLogger('urllib3')
-#log.setLevel(logging.DEBUG)
+log = logging.getLogger("net.dirtyagile.confluence.md")
+log.setLevel('DEBUG')
 
 # pylint: disable=missing-function-docstring,missing-class-docstring
 class TestConfluenceMD:
@@ -22,7 +22,7 @@ class TestConfluenceMD:
     def __confluence_request(self, method: str, endpoint: str):
         response = requests.request(
             method,
-            self.url + endpoint,
+            parse.urljoin(self.url, endpoint),
             headers={ "Accept": "application/json" },
             auth=self.auth,
             timeout=10
@@ -31,26 +31,35 @@ class TestConfluenceMD:
             return response.json()
         return None
 
+    def __get_child_pages(self, parent_id: str) -> list:
+        return self.__confluence_request("GET", f'api/v2/pages/{parent_id}/children')
+
+    def __delete_page(self, page_id: str) -> None:
+        self.__confluence_request("DELETE", f"api/v2/pages/{page_id}")
+
+    def __get_page(self, page_id: str):
+        page = self.__confluence_request("GET", f'api/v2/pages/{page_id}?body-format=storage')
+        return page['body']['storage']['value']
+
     @pytest.fixture(autouse=True)
     def cleanup(self, url, user, token):
         self.url = url
         self.auth = requests.auth.HTTPBasicAuth(user, token)
         # https://dirtyagile.atlassian.net/wiki/spaces/AD/pages/1115881473/Pytests
         pytests_id = 1115881473
-        test_pages = self.__confluence_request("GET", f'api/v2/pages/{pytests_id}/children')
+        test_pages = self.__get_child_pages(pytests_id)
         for page in test_pages['results']:
-            if page['status'] == 'trashed':
-                continue
-            page_id = page['id']
-            self.__confluence_request("DELETE", f"api/v2/pages/{page_id}")
+            if page['status'] == 'current':
+                self.__delete_page(page['id'])
 
-    
     @staticmethod
-    def init_confluencemd(user: str, token: str, url: str, md_file: str) -> None:
+    def init_confluencemd(user: str, token: str, url: str, md_file: str,
+                          convert_jira: bool=False) -> None:
         return ConfluenceMD(username=user,
                             md_file=md_file,
                             token=token,
-                            url=url)
+                            url=url,
+                            convert_jira=convert_jira)
 
     def test_create_page(self, capsys, caplog, user, token, url):
         md_file = "src/tests/test_basic.md"
@@ -67,7 +76,9 @@ class TestConfluenceMD:
             conf_md.create_page("1", title, False)
 
         page_id = conf_md.create_page("1115881473", title, False)
-        
+        page_content = self.__get_page(page_id)
+        assert title in page_content
+
         with pytest.raises(AssertionError, match=r"Page titled `Basic test` already exists.*"):
             conf_md.create_page("1115881473", title, False)
 
@@ -87,17 +98,31 @@ class TestConfluenceMD:
             conf_md.create_page("1115881473", "Basic test 2", False)
 
     def test_jira_links(self, capsys, caplog, user, token, url):
+        title = "Jira test"
         conf_md = TestConfluenceMD.init_confluencemd(user=user, token=token, url=url,
                                                      md_file="src/tests/test_jira.md")
 
-        conf_md.create_page("1115881473", "Jira test", True)
+        page_id = conf_md.create_page("1115881473", title, False)
+        page_content = self.__get_page(page_id)
+        assert title in page_content
+        assert '<p>[KEY-1]</p>' in page_content
 
         captured = capsys.readouterr()
         assert captured.out == ""
 
         for record in caplog.records:
             assert record.levelname in ["INFO", "DEBUG"]
-        assert "Use --convert_jira to replace 2 Jira link" in caplog.text
+        assert "Use --convert_jira to replace 3 Jira link" in caplog.text
+
+        conf_md = TestConfluenceMD.init_confluencemd(user=user, token=token, url=url,
+                                                     md_file="src/tests/test_jira.md",
+                                                     convert_jira=True)
+        page_id = conf_md.create_page("1115881473", title, True)
+        page_content = self.__get_page(page_id)
+        assert title in page_content
+        assert '<p>[KEY-1]</p>' in page_content
+        assert 'AD-120: Atlassian Bug Bounty programm [In Progress]' in page_content
+
 
     def test_wrong_images(self, user, token, url):
         conf_md = TestConfluenceMD.init_confluencemd(user=user, token=token, url=url,
