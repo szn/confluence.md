@@ -19,7 +19,7 @@ def register_action(function):
     def wrapper(args):
         headline(function.__doc__)
         function(args)
-        headline("End " + function.__name__, True)
+        headline("End " + function.__name__)
     return wrapper
 
 def init_confluence(args):

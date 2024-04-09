@@ -84,7 +84,7 @@ class ConfluenceMD(atlassian.Confluence):
         except (RuntimeError, AssertionError, Exception) as error:
             logger.error(error)
 
-    def update_existing(self, page_id: str = None) -> None:
+    def update_existing(self, page_id: str = None) -> int:
         """Updates an existing page by given page_id"""
         logger.debug("Updating page `%s` based on `md_file` file", page_id)
         html, page_id_from_meta, url, images = md_to_html(self.md_file, self.add_info_panel)
@@ -127,8 +127,10 @@ class ConfluenceMD(atlassian.Confluence):
 
         if self.add_label:
             self.__add_label_to_page(page_id)
+        
+        return page_id
 
-    def create_page(self, parent_id: str, title: str, overwrite: bool) -> None:
+    def create_page(self, parent_id: str, title: str, overwrite: bool) -> int:
         """Creates a new page under give parent_id"""
         assert title, "Provide a title for a newly created page"
         assert parent_id, "Provide parent_id for a newly created page"
@@ -191,6 +193,7 @@ class ConfluenceMD(atlassian.Confluence):
 
         page_id = ConfluenceMD.__get_page_id_from_response(response)
         self.__add_label_to_page(page_id)
+        return page_id
 
     def __rewrite_issues(self, html):
         if self.convert_jira:
