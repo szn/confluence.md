@@ -43,8 +43,7 @@ class ConfluenceMD(atlassian.Confluence):
             token=token,
         )
 
-        if convert_jira:
-            self.__init_jira(
+        self.license = self.__init_jira(
                 url=jira_url,
                 username=username,
                 password=(password or token),
@@ -63,7 +62,7 @@ class ConfluenceMD(atlassian.Confluence):
                     username: str,
                     password: str,
                     verify_ssl: bool,
-                    token: str):
+                    token: str) -> bool:
         self.jira = atlassian.Jira(
                 url=url,
                 username=username,
@@ -72,17 +71,16 @@ class ConfluenceMD(atlassian.Confluence):
                 cloud=bool(token),
                 token=token
             )
-        self.license = False
         try:
-            uri = parse.urljoin(url, 'wiki/rest/atlassian-connect/1/addons/confluence.md')
+            uri = parse.urljoin(url, 'wiki/rest/atlassian-connect/1/addons/smart-issue-view-for-confluence')
             res = requests.get(uri, auth=(username, password or token), timeout=30)
             license_obj = res.json()
             if res.status_code != 200:
                 return
-            self.license = license_obj["license"]["active"]
+            return bool (license_obj["license"]["active"])
         # pylint: disable=broad-exception-caught
         except (RuntimeError, AssertionError, Exception):
-            pass
+            return False
 
     def update_existing(self, page_id: str = None) -> int:
         """Updates an existing page by given page_id"""
@@ -217,6 +215,11 @@ class ConfluenceMD(atlassian.Confluence):
             logger.info("Use --convert_jira to replace %i Jira link(s) (such as %s) "
                         "with issue snippets - KEY: summary [status]",
                         len(issues), key)
+            return html
+
+        if not self.license and self.convert_jira:
+            logger.warning("To use `--convert_jira` you must have „Smart Issue for Confluence” installed (free for small business)")
+            logger.warning("See: https://marketplace.atlassian.com/apps/1224608/smart-issue-view-for-confluence")
             return html
 
         for (replace, key) in issues:
