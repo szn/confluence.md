@@ -219,7 +219,7 @@ class ConfluenceMD(atlassian.Confluence):
 
         if not self.license and self.convert_jira:
             logger.warning("To use `--convert_jira` you must have „Smart Issue for Confluence” installed (free for small business)")
-            logger.warning("See: https://marketplace.atlassian.com/apps/1224608/smart-issue-view-for-confluence")
+            logger.warning("See: https://marketplace.atlassian.com/plugins/smart-issue-view-for-confluence")
             return html
 
         for (replace, key) in issues:

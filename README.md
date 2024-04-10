@@ -62,6 +62,8 @@ To create Atlassian API Token go to [api-tokens](https://id.atlassian.com/manage
 - `--add_meta`              adds metadata to .md file for easy editing
 - `--add_info`              adds info panel **automatic content** do not edit on top of the page
 - `--add_label` `ADD_LABEL` adds label to page
+- `--convert_jira`          convert all Jira links to issue snippets (either short [KEY-ID] format or full URL)
+                            **note**: this options works only in Cloud instances with [Smart Issue for Confluence](https://marketplace.atlassian.com/plugins/smart-issue-view-for-confluence) installed
 - `-v`, `--verbose`         verbose mode
 - `-q`, `--quiet`           quiet mode
 
@@ -69,7 +71,9 @@ To create Atlassian API Token go to [api-tokens](https://id.atlassian.com/manage
 
 - `-u` `USER`, `--user` `USER`    Atlassian username/email
 - `-t` `TOKEN`, `--token` `TOKEN` Atlassian API token
+- `-p` `PWD`, `--password` `PWD`  Atlassian password (used in on-prem instances)
 - `-l` `URL`, `--url` `URL`       Atlassian instance URL
+- `-n`, `--no_verify_ssl`         Don't verify SSL cert in on-prem instances
 
 **create page parameters:**
 
