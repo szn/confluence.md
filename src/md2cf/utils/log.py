@@ -1,3 +1,6 @@
+"""
+confluence.md logging utility
+"""
 import logging
 
 import coloredlogs
@@ -7,6 +10,7 @@ logger = logging.getLogger("net.dirtyagile.confluence.md")
 
 
 def init_logger(args):
+    """Inits logger based on commandline args"""
     coloredlogs.install(
             level='WARN' if args.quiet else ('DEBUG' if args.verbose else 'INFO'),
             logger=logger,
@@ -28,10 +32,11 @@ def init_logger(args):
                     'notice': {'color': 'magenta'},
                     'warning': {'color': 'yellow'}})
 
-    logging.getLogger("net.dirtyagile.confluence.md").level = logging.WARN if args.quiet else (logging.DEBUG if args.verbose else logging.INFO)
+    logging.getLogger("net.dirtyagile.confluence.md").level = \
+        logging.WARN if args.quiet else (logging.DEBUG if args.verbose else logging.INFO)
 
 
-def headline(msg, end=False):
+def headline(msg):
+    """Bold headline"""
     logger.info(colored(" {:80}".format(msg), 'blue',
             attrs=['reverse']))
-
