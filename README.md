@@ -14,7 +14,8 @@ It's as easy as:
 ```sh
 $ pip install confluence.md
 
-# it the above doesn't work
+# If the above doesn't work, your `pip` command points to different
+# python than installation than `python` command. If so, run:
 $ python -m pip install confluence.md
 ```
 
@@ -24,7 +25,7 @@ Markdown to Confluence
 
 Example workflow:
 
-### 1. Create page
+#### 1. Create page
 
 Create a new page under `--parent_id`:
 ```sh
@@ -38,7 +39,7 @@ $ confluence.md --user user@name.net \             # Atlassian username
         --add_meta                                 # adds meta to source.md file
 ```
 
-### 2. Verify markdown
+#### 2. Verify markdown
 
 The page is created and the file is decorated with metadata:
 
@@ -49,7 +50,7 @@ confluence-url: https://your-domain.atlassian.net/wiki/spaces/SP/pages/18237182/
 ---
 ```
 
-### 3. Update page
+#### 3. Update page
 
 Performing an update does not require providing `--page_id` and `--url`:
 
