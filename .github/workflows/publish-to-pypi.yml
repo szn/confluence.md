@@ -6,9 +6,9 @@ jobs:
   build-n-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
     runs-on: ubuntu-22.04
-    environment: pypi
-    permissions:
-      id-token: write
+    environment:
+      name: pypi
+      url: https://pypi.org/p/confluence.md
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python 3.9
@@ -44,6 +44,9 @@ jobs:
       with:
         skip-existing: true
         repository-url: https://test.pypi.org/legacy/
+        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
     - name: Publish distribution 📦 to PyPI
       if: startsWith(github.ref, 'refs/tags')
       uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
