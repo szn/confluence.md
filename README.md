@@ -15,7 +15,7 @@ It's as easy as:
 $ pip install confluence.md
 ```
 
-## How to use it?
+## How to use it in command-line?
 
 Markdown to Confluence
 
@@ -84,3 +84,20 @@ To create Atlassian API Token go to [api-tokens](https://id.atlassian.com/manage
 **update page arguments:**
 
 -  `--page_id` `PAGE_ID`     define (or override) page id while updating a page
+
+## How to use it in a Python script?
+
+ConfluenceMD wasn't designed to be used this way, but it's fairly simple to embed
+it in a Python script. See this example:
+
+```python
+from md2cf.utils.confluencemd import ConfluenceMD
+conf_md = ConfluenceMD(username=user,
+                       md_file=md_file,
+                       token=token,
+                       url=url,
+                       convert_jira=convert_jira)
+conf_md.create_new("page_id", "title")
+# or
+conf_md.update_existing("page_id")
+```
