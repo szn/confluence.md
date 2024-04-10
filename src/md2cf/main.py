@@ -46,7 +46,7 @@ def create(args):
     assert args.url, ("No --url parameter is provided, gave up")
 
     confluence = init_confluence(args)
-    confluence.create_page(args.parent_id, args.title, args.overwrite)
+    confluence.create_new(args.parent_id, args.title, args.overwrite)
 
 def main():
     """Markdown to Confluence

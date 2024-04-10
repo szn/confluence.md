@@ -128,7 +128,7 @@ class ConfluenceMD(atlassian.Confluence):
 
         return page_id
 
-    def create_page(self, parent_id: str, title: str, overwrite: bool) -> int:
+    def create_new(self, parent_id: str, title: str, overwrite: bool) -> int:
         """Creates a new page under give parent_id"""
         assert title, "Provide a title for a newly created page"
         assert parent_id, "Provide parent_id for a newly created page"

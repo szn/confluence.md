@@ -67,20 +67,20 @@ class TestConfluenceMD:
         conf_md = TestConfluenceMD.init_confluencemd(user=user, token=token, url=url,
                                                      md_file=md_file)
         with pytest.raises(AssertionError, match=r"Provide parent_id for a newly created page"):
-            conf_md.create_page("", title, None)
+            conf_md.create_new("", title, None)
 
         with pytest.raises(AssertionError, match=r"Provide a title for a newly created page"):
-            conf_md.create_page("1115881473", "", None)
+            conf_md.create_new("1115881473", "", None)
 
         with pytest.raises(ApiError, match=r"There is no content with the given id.*"):
-            conf_md.create_page("1", title, False)
+            conf_md.create_new("1", title, False)
 
-        page_id = conf_md.create_page("1115881473", title, False)
+        page_id = conf_md.create_new("1115881473", title, False)
         page_content = self.__get_page(page_id)
         assert title in page_content
 
         with pytest.raises(AssertionError, match=r"Page titled `Basic test` already exists.*"):
-            conf_md.create_page("1115881473", title, False)
+            conf_md.create_new("1115881473", title, False)
 
         captured = capsys.readouterr()
         assert captured.out == ""
@@ -95,14 +95,14 @@ class TestConfluenceMD:
         conf_md = TestConfluenceMD.init_confluencemd(user=user, token=token, url=url,
                                                      md_file="src/tests/test_metadata.md")
         with pytest.raises(AssertionError, match=r"Metadata pointing to an existing page id.*"):
-            conf_md.create_page("1115881473", "Basic test 2", False)
+            conf_md.create_new("1115881473", "Basic test 2", False)
 
     def test_jira_links(self, capsys, caplog, user, token, url):
         title = "Jira test"
         conf_md = TestConfluenceMD.init_confluencemd(user=user, token=token, url=url,
                                                      md_file="src/tests/test_jira.md")
 
-        page_id = conf_md.create_page("1115881473", title, False)
+        page_id = conf_md.create_new("1115881473", title, False)
         page_content = self.__get_page(page_id)
         assert title in page_content
         assert '<p>[KEY-1]</p>' in page_content
@@ -117,7 +117,7 @@ class TestConfluenceMD:
         conf_md = TestConfluenceMD.init_confluencemd(user=user, token=token, url=url,
                                                      md_file="src/tests/test_jira.md",
                                                      convert_jira=True)
-        page_id = conf_md.create_page("1115881473", title, True)
+        page_id = conf_md.create_new("1115881473", title, True)
         page_content = self.__get_page(page_id)
         assert title in page_content
         assert '<p>[KEY-1]</p>' in page_content
@@ -130,4 +130,4 @@ class TestConfluenceMD:
 
         with pytest.raises(FileNotFoundError,
                            match=r"No such file or directory: 'src/tests/test_images.md'"):
-            conf_md.create_page("1115881473", "Images test", True)
+            conf_md.create_new("1115881473", "Images test", True)
