@@ -112,7 +112,7 @@ class TestConfluenceMD:
 
         for record in caplog.records:
             assert record.levelname in ["INFO", "DEBUG"]
-        assert "Use --convert_jira to replace 3 Jira link" in caplog.text
+        assert "Use `--convert_jira` to replace 3 Jira link" in caplog.text
 
         conf_md = TestConfluenceMD.init_confluencemd(user=user, token=token, url=url,
                                                      md_file="src/tests/test_jira.md",

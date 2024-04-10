@@ -139,7 +139,7 @@ class ConfluenceMD(atlassian.Confluence):
             page_id = self.get_page_id(space, title)
             assert overwrite, (
                 f"Page titled `{title}` already exists in "
-                f"the `{space}` space. Use --overwrite to force it."
+                f"the `{space}` space. Use `--overwrite` to force it."
             )
 
         html, page_id_from_meta, _url, images = md_to_html(self.md_file, self.add_info_panel)
@@ -147,7 +147,7 @@ class ConfluenceMD(atlassian.Confluence):
         assert not page_id_from_meta or overwrite, (
             f"Metadata pointing to an existing page "
             f"id `{page_id_from_meta}` present in the given markdown file. "
-            f"Use --overwrite to force it."
+            f"Use `--overwrite` to force it."
         )
 
         overwrite_id = page_id if page_id else page_id_from_meta
@@ -212,7 +212,7 @@ class ConfluenceMD(atlassian.Confluence):
 
         if issues and not self.convert_jira:
             (replace, key) = issues[0]
-            logger.info("Use --convert_jira to replace %i Jira link(s) (such as %s) "
+            logger.info("Use `--convert_jira` to replace %i Jira link(s) (such as %s) "
                         "with issue snippets - KEY: summary [status]",
                         len(issues), key)
             return html
