@@ -83,7 +83,7 @@ To create Atlassian API Token go to [api-tokens](https://id.atlassian.com/manage
 - `--add_info`              adds info panel **automatic content** do not edit on top of the page
 - `--add_label` `ADD_LABEL` adds label to page
 - `--convert_jira`          convert all Jira links to issue snippets (either short [KEY-ID] format or full URL)
-                            **note**: this options works only in Cloud instances with [Smart Issue for Confluence](https://marketplace.atlassian.com/plugins/smart-issue-view-for-confluence) installed
+                            **note**: this options works only in Cloud instances with [Secure Markdown](https://marketplace.atlassian.com/plugins/secure-markdown-for-confluence) installed
 - `-v`, `--verbose`         verbose mode
 - `-q`, `--quiet`           quiet mode
 

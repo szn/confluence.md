@@ -77,7 +77,7 @@ class ConfluenceMD(atlassian.Confluence):
             res = requests.get(uri, auth=(username, password or token), timeout=30)
             license_obj = res.json()
             if res.status_code != 200:
-                return
+                return False
             return bool (license_obj["license"]["active"])
         # pylint: disable=broad-exception-caught
         except (RuntimeError, AssertionError, Exception):
@@ -219,7 +219,7 @@ class ConfluenceMD(atlassian.Confluence):
             return html
 
         if not self.license and self.convert_jira:
-            logger.warning("To expand Jira issues, you must have „Smart Issue for Confluence” installed (free for small business)")
+            logger.warning("To expand Jira issues, you must have „Secure Markdown for Confluence” installed (free for small business)")
             logger.warning("See: https://marketplace.atlassian.com/plugins/secure-markdown-for-confluence")
             return html
 
