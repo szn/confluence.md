@@ -136,11 +136,11 @@ class TestConfluenceMD:
         title = "Basic test"
         conf_md = TestConfluenceMD.init_confluencemd(user=user, token=token, url=url,
                                                      md_file="src/tests/test_basic.md")
-        
+
         page_id = conf_md.create_new("1115881473", title, False)
         page_content = self.__get_page(page_id)
         assert title in page_content
-        
+
         conf_md = TestConfluenceMD.init_confluencemd(user=user, token=token, url=url,
                                                      md_file="src/tests/test_jira.md")
         page_id = conf_md.update_existing(page_id)

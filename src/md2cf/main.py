@@ -23,6 +23,7 @@ def register_action(function):
     return wrapper
 
 def init_confluence(args):
+    """Inits connections to Confluence"""
     return ConfluenceMD(username=args.user,
                         token=args.token,
                         password=args.password,
@@ -89,56 +90,82 @@ Actions:
     for action in actions:
         description += f"  {action:10}\t\t{ACTIONS[action]}\n"
 
-    parser = argparse.ArgumentParser(add_help=True,
-            prog="confluence.md",
-            formatter_class=RawTextHelpFormatter,
-            description=description)
+    parser = argparse.ArgumentParser(
+        add_help=True,
+        prog="confluence.md",
+        formatter_class=RawTextHelpFormatter,
+        description=description)
 
     auth_args = parser.add_argument_group('required auth parameters')
-    auth_args.add_argument("-u", "--user", action="store", required=True,
-            help="Atlassian username/email")
+    auth_args.add_argument("-u", "--user",
+                           action="store",
+                           required=True,
+                           help="Atlassian username/email")
+    auth_args.add_argument("-l", "--url",
+                           action="store",
+                           required=False,
+                           help="Atlassian instance URL")
+    auth_args.add_argument("-n", "--no_verify_ssl",
+                           action="store_true",
+                           required=False,
+                           default=False,
+                           help="Don't verify SSL cert in on-prem instances")
 
     secret_args = auth_args.add_mutually_exclusive_group(required=True)
-    secret_args.add_argument("-t", "--token", action="store", required=False,
-            help="Atlassian API token (used in cloud instances)")
-    secret_args.add_argument("-p", "--password", action="store", required=False,
-            help="Atlassian password (used in on-prem instances)")
-    auth_args.add_argument("-l", "--url", action="store", required=False,
-            help="Atlassian instance URL")
-    auth_args.add_argument("-n", "--no_verify_ssl", action="store_true", required=False,
-            default=False, help="Don't verify SSL cert in on-prem instances")
+    secret_args.add_argument("-t", "--token",
+                             action="store",
+                             required=False,
+                             help="Atlassian API token (used in cloud instances)")
+    secret_args.add_argument("-p", "--password",
+                             action="store",
+                             required=False,
+                             help="Atlassian password (used in on-prem instances)")
+
 
     create_args = parser.add_argument_group('create page parameters')
-    create_args.add_argument("--parent_id", action="store",
-            help="define parent page id while creating a new page")
-    create_args.add_argument("--title", action="store",
-            help="define page title while creating a new page")
-    create_args.add_argument("--overwrite", action="store_true",
-            help="force overwrite if page with this title already exists")
+    create_args.add_argument("--parent_id",
+                             action="store",
+                             help="define parent page id while creating a new page")
+    create_args.add_argument("--title",
+                             action="store",
+                             help="define page title while creating a new page")
+    create_args.add_argument("--overwrite",
+                             action="store_true",
+                             help="force overwrite if page with this title already exists")
 
     update_args = parser.add_argument_group('update page arguments')
-    update_args.add_argument("--page_id", action="store",
-            help="define (or override) page id while updating a page")
+    update_args.add_argument("--page_id",
+                             action="store",
+                             help="define (or override) page id while updating a page")
 
-    parser.add_argument("--file", action="store",
-            type=argparse.FileType('r'), required=True,
-            help="input markdown file to process")
+    parser.add_argument("--file",
+                        action="store",
+                        type=argparse.FileType('r'),
+                        required=True,
+                        help="input markdown file to process")
 
     parser.add_argument("--add_meta", action="store_true",
-            help="adds metadata to .md file for easy editing")
+                        help="adds metadata to .md file for easy editing")
     parser.add_argument("--add_info", action="store_true",
-            help="adds info panel **automatic content** do not edit on top of the page")
+                        help="adds info panel **automatic content** "
+                            "do not edit on top of the page")
     parser.add_argument("--add_label", action="store",
-            help="adds label to page")
-    parser.add_argument("--convert_jira", action="store_true",
-            help="convert all Jira links to issue snippets "
-                 "(either short [KEY-ID] format or full URL)")
+                        help="adds label to page")
+    parser.add_argument("--convert_jira",
+                        action="store_true",
+                        default=False,
+                        help="convert all Jira links to issue snippets "
+                            "(either short [KEY-ID] format or full URL)")
 
-    parser.add_argument("-v", "--verbose", action="store_true",
-            help="verbose mode")
-    parser.add_argument("-q", "--quiet", action="store_true",
-            help="quiet mode")
-    parser.add_argument("action", help="Action to run", choices=ACTIONS)
+    parser.add_argument("-v", "--verbose",
+                        action="store_true",
+                        help="verbose mode")
+    parser.add_argument("-q", "--quiet",
+                        action="store_true",
+                        help="quiet mode")
+    parser.add_argument("action",
+                        help="Action to run",
+                        choices=ACTIONS)
 
     if len(sys.argv)==1:
         parser.print_help(sys.stderr)
