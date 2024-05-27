@@ -13,8 +13,8 @@ from .log import logger
 from .md2html import md_to_html
 
 ISSUE_PATTERN_KEY = re.compile(r"\[(?P<key>\w[\w\d]*-\d+)\]")
-ISSUE_PATTERN_URL = re.compile(r"(?P<domain>https:\/\/\w+\.atlassian\.net)"
-                               r"\/browse\/(?P<key>\w[\w\d]*-\d+)")
+ISSUE_PATTERN_URL = re.compile(r"[^\"](?P<url>(?P<domain>https:\/\/\w+\.atlassian\.net)"
+                               r"\/browse\/(?P<key>\w[\w\d]*-\d+))")
 
 class ConfluenceMD(atlassian.Confluence):
     """Confluence to Markdown utility class"""
@@ -30,12 +30,13 @@ class ConfluenceMD(atlassian.Confluence):
         add_meta: bool = False,
         add_info_panel: bool = False,
         add_label: str = None,
-        convert_jira: bool = False
+        convert_jira: bool = True
     ) -> None:
-        jira_url = parse.urljoin(url, '/')
-        conf_url = parse.urljoin(url, '/wiki/')
+        self.jira_url = parse.urljoin(url, '/')
+        self.conf_url = parse.urljoin(url, '/wiki/')
+
         super().__init__(
-            url=conf_url,
+            url=self.conf_url,
             username=username,
             password=(password or token),
             verify_ssl=verify_ssl,
@@ -44,7 +45,7 @@ class ConfluenceMD(atlassian.Confluence):
         )
 
         self.license = self.__init_jira(
-                url=jira_url,
+                url=self.jira_url,
                 username=username,
                 password=(password or token),
                 verify_ssl=verify_ssl,
@@ -202,7 +203,7 @@ class ConfluenceMD(atlassian.Confluence):
             issues.append((issue.group(), issue.group("key")))
         for issue in ISSUE_PATTERN_URL.finditer(html):
             if self.url.startswith(issue.group("domain")):
-                issues.append((issue.group(), issue.group("key")))
+                issues.append((issue.group("url"), issue.group("key")))
             else:
                 if self.convert_jira:
                     logger.info("Ignoring %s - domain mismatch (%s != %s)",
@@ -226,10 +227,12 @@ class ConfluenceMD(atlassian.Confluence):
             logger.debug("  - [%s] with html link", key)
             (summary, status, issuetypeurl) = self.__get_jira_issue(key)
             if summary:
-                html = html.replace(replace,
-                    f"<a href=\"{self.url}/browse/{key}\"><ac:image>"
+                re_replace = re.compile(r"([^\"])" + re.escape(replace))
+                html = re.sub(re_replace,
+                    f"\\1<a href=\"{self.jira_url}browse/{key}\"><ac:image>"
                     f"<ri:url ri:value=\"{issuetypeurl}\" />"
-                    f"</ac:image> {key}: {summary} [{status}]</a>")
+                    f"</ac:image> {key}: {summary} [{status}]</a>",
+                    html)
         return html
 
     def __get_jira_issue(self, key: str) -> tuple:
