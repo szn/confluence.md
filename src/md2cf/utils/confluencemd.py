@@ -72,7 +72,7 @@ class ConfluenceMD(atlassian.Confluence):
                 token=token
             )
         try:
-            uri = parse.urljoin(url, 'wiki/rest/atlassian-connect/1/addons/smart-issue-view-for-confluence')
+            uri = parse.urljoin(url, 'wiki/rest/atlassian-connect/1/addons/secure-markdown-for-confluence')
             res = requests.get(uri, auth=(username, password or token), timeout=30)
             license_obj = res.json()
             if res.status_code != 200:
@@ -218,8 +218,8 @@ class ConfluenceMD(atlassian.Confluence):
             return html
 
         if not self.license and self.convert_jira:
-            logger.warning("To use `--convert_jira` you must have „Smart Issue for Confluence” installed (free for small business)")
-            logger.warning("See: https://marketplace.atlassian.com/plugins/smart-issue-view-for-confluence")
+            logger.warning("To expand Jira issues, you must have „Smart Issue for Confluence” installed (free for small business)")
+            logger.warning("See: https://marketplace.atlassian.com/plugins/secure-markdown-for-confluence")
             return html
 
         for (replace, key) in issues:
