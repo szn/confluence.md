@@ -220,7 +220,8 @@ class ConfluenceMD(atlassian.Confluence):
 
         if not self.license and self.convert_jira:
             logger.warning("To expand Jira issues, you must have „Secure Markdown for Confluence” installed (free for small business)")
-            logger.warning("See: https://marketplace.atlassian.com/plugins/secure-markdown-for-confluence")
+            logger.warning("Cloud: https://marketplace.atlassian.com/plugins/secure-markdown-for-confluence")
+            logger.warning("Server/data-center: https://dirtyagile.atlassian.net/wiki/x/AQACR")
             return html
 
         for (replace, key) in issues:
