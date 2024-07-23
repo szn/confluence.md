@@ -1,5 +1,5 @@
-atlassian-python-api>=3.41.3
+atlassian-python-api>=3.41.14
 coloredlogs>=15.0.1
 markdown2>=2.4.10
 termcolor>=2.3.0
-pytest>=8.1.1
+pytest>=8.3.1
