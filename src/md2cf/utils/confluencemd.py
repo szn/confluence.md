@@ -18,6 +18,8 @@ ISSUE_PATTERN_URL = re.compile(r"[^\"](?P<url>(?P<domain>https:\/\/\w+\.atlassia
 
 class ConfluenceMD(atlassian.Confluence):
     """Confluence to Markdown utility class"""
+    jira_url:str = None
+    conf_url:str = None
 
     def __init__(
         self,
@@ -32,11 +34,12 @@ class ConfluenceMD(atlassian.Confluence):
         add_label: str = None,
         convert_jira: bool = True
     ) -> None:
-        self.jira_url = parse.urljoin(url, '/')
-        self.conf_url = parse.urljoin(url, '/wiki/')
+        if url:
+            self.jira_url = parse.urljoin(url, '/')
+            self.conf_url = parse.urljoin(url, '/wiki/')
 
         super().__init__(
-            url=self.conf_url,
+            url=self.conf_url or "",
             username=username,
             password=(password or token),
             verify_ssl=verify_ssl,
@@ -87,6 +90,16 @@ class ConfluenceMD(atlassian.Confluence):
         """Updates an existing page by given page_id"""
         logger.debug("Updating page `%s` based on `md_file` file", page_id)
         html, page_id_from_meta, url, images = md_to_html(self.md_file, self.add_info_panel)
+        if self.conf_url is None:
+            logger.debug("Using URL (%s) from `%s` file", url, self.md_file)
+            assert url, (
+                f"Can't update page without url given either by "
+                f"`--url` parameter or via `confluence-url` tag in `{self.md_file}` file`"
+            )
+            self.jira_url = parse.urljoin(url, '/')
+            self.conf_url = parse.urljoin(url, '/wiki/')
+            self.url = self.conf_url # to satisfy parent class
+
         html = self.__rewrite_issues(html)
         self.__attach_images(page_id, images)
 
@@ -99,13 +112,6 @@ class ConfluenceMD(atlassian.Confluence):
             f"`--page_id` parameter or via `confluence-url` tag in `{self.md_file}` file"
         )
 
-        if self.url is None:
-            logger.debug("Using URL (%s) from `%s` file", url, self.md_file)
-            self.url = url
-            assert self.url, (
-                f"Can't update page without url given either by "
-                f"`--url` parameter or via `confluence-url` tag in `{self.md_file}` file`"
-            )
 
         title = self.__get_page_title_by_id(page_id)
 
@@ -202,14 +208,14 @@ class ConfluenceMD(atlassian.Confluence):
         for issue in ISSUE_PATTERN_KEY.finditer(html):
             issues.append((issue.group(), issue.group("key")))
         for issue in ISSUE_PATTERN_URL.finditer(html):
-            if self.url.startswith(issue.group("domain")):
+            if self.jira_url.startswith(issue.group("domain")):
                 issues.append((issue.group("url"), issue.group("key")))
             else:
                 if self.convert_jira:
                     logger.info("Ignoring %s - domain mismatch (%s != %s)",
                                 issue.group(),
                                 issue.group("domain"),
-                                self.url)
+                                self.jira_url)
 
         if issues and not self.convert_jira:
             (replace, key) = issues[0]
