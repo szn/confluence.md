@@ -101,11 +101,11 @@ class ConfluenceMD(atlassian.Confluence):
             self.url = self.conf_url # to satisfy parent class
 
         html = self.__rewrite_issues(html)
-        self.__attach_images(page_id, images)
-
         if page_id is None:
             logger.debug("Using `page_id` from `%s` file", self.md_file)
             page_id = page_id_from_meta
+
+        self.__attach_images(page_id, images)
 
         assert page_id, (
             f"Can't update page without page_id given either by "
@@ -259,6 +259,7 @@ class ConfluenceMD(atlassian.Confluence):
     ) -> None:
         """Replaces <img> html tags with Confluence specific <ac:image> and uploads
            images as attachements"""
+        logger.info("__attach_images %s", page_id)
         for (_alt, path) in images:
             rel_path = os.path.join(self.md_file_dir, path)
             if not os.path.isfile(rel_path):
