@@ -86,7 +86,7 @@ def __rewrite_images(html: str,
         rel_path = os.path.join(md_file_dir, path)
         if not os.path.isfile(rel_path):
             assert os.path.isfile(path), f"File `{path}` does not exist"
-            logger.warning("file `%s` does not exist, using file relative to "
+            logger.debug("File `%s` does not exist, using file relative to "
                             "current dir `%s`", rel_path, path)
             rel_path = path
 
