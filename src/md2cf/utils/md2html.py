@@ -64,8 +64,8 @@ def __get_info_panel(md_file: str) -> str:
     if --add_info is added
     """
     return f"""
-        <p><strong>Automatic content</strong> This page was generated automatically from
-        <code>{md_file}</code> file.Do not edit it on Confluence.</p><hr />
+    <p><strong>Automatic content</strong> - Do not edit this page in Confluence.
+    Page automatically generated from: <code>{md_file}</code></p><hr />
     """
 
 def __get_images_from_file(md: str) -> List:
@@ -82,7 +82,7 @@ def __rewrite_images(html: str,
                      images: List[Tuple[str, str]]
                      ) -> str:
     """Replaces <img> html tags with Confluence specific <ac:image> and uploads
-        images as attachements"""
+        images as attachments"""
     for (alt, path) in images:
         rel_path = os.path.join(md_file_dir, path)
         if not os.path.isfile(rel_path):
