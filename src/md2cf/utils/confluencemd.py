@@ -259,7 +259,6 @@ class ConfluenceMD(atlassian.Confluence):
     ) -> None:
         """Replaces <img> html tags with Confluence specific <ac:image> and uploads
            images as attachements"""
-        logger.info("__attach_images %s", page_id)
         for (_alt, path) in images:
             rel_path = os.path.join(self.md_file_dir, path)
             if not os.path.isfile(rel_path):

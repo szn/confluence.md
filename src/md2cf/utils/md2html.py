@@ -38,6 +38,7 @@ def md_to_html(md_file: str,
 
     md_file_dir = os.path.dirname(md_file)
     html = __rewrite_images(html, md_file_dir, images)
+    html = __fix_code_blocks(html)
     return html, page_id_from_meta, url, images
 
 def __parse_confluence_url(meta: Dict[str, str]) -> Tuple[Optional[str], Optional[str]]:
@@ -99,6 +100,13 @@ def __rewrite_images(html: str,
         else:
             logger.warning("image tag `%s` not found in html", old)
     return html
+
+def __fix_code_blocks(html: str) -> str:
+    """
+    @TODO temporary fix for https://github.com/szn/confluence.md/issues/12
+    """
+    html = html.replace('<pre><code>', '<code>')
+    return html.replace("</code></pre>", "</code>")
 
 def __get_file_contents(file: str) -> str:
     """Return file contents"""
