@@ -258,7 +258,7 @@ class ConfluenceMD(atlassian.Confluence):
             self, page_id: str, images: List[Tuple[str, str]]
     ) -> None:
         """Replaces <img> html tags with Confluence specific <ac:image> and uploads
-           images as attachements"""
+           images as attachments"""
         for (_alt, path) in images:
             rel_path = os.path.join(self.md_file_dir, path)
             if not os.path.isfile(rel_path):
@@ -306,7 +306,7 @@ class ConfluenceMD(atlassian.Confluence):
 
 
     def __add_label_to_page(self, page_id: str) -> None:
-        """Selfdescriptive"""
+        """Self descriptive"""
         if not self.add_label:
             return
         self.set_page_label(page_id, self.add_label)
