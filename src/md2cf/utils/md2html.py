@@ -32,6 +32,7 @@ def md_to_html(md_file: str,
             "footnotes",
         ],
     )
+    logger.debug("md_to_html html before postprocessing\n%s", html)
     page_id_from_meta, url = __parse_confluence_url(html.metadata)
     if add_info_panel:
         html = __get_info_panel(md_file) + html
@@ -39,6 +40,7 @@ def md_to_html(md_file: str,
     md_file_dir = os.path.dirname(md_file)
     html = __rewrite_images(html, md_file_dir, images)
     html = __fix_code_blocks(html)
+    logger.debug("md_to_html html after postprocessing\n%s", html)
     return html, page_id_from_meta, url, images
 
 def __parse_confluence_url(meta: Dict[str, str]) -> Tuple[Optional[str], Optional[str]]:
