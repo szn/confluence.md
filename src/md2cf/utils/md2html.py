@@ -107,7 +107,8 @@ def __fix_code_blocks(html: str) -> str:
     """
     @TODO temporary fix for https://github.com/szn/confluence.md/issues/12
     """
-    html = html.replace('<pre><code>', '<code>')
+    opening_tags = r"<pre>(<span></span>)?<code>"
+    html = re.sub(opening_tags, "<code>", html, 1)
     return html.replace("</code></pre>", "</code>")
 
 def __get_file_contents(file: str) -> str:
